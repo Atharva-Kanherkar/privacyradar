@@ -85,10 +85,16 @@ export default async function Home() {
                 <p className="mt-2 text-sm text-[var(--muted)]">
                   {c.data_types.length > 0
                     ? c.data_types.join(" · ")
-                    : c.source_health === "degraded" || c.source_health === "quarantined"
-                      ? "Check delayed. Last verified observation is unchanged."
-                      : "Hashed. Extraction pending."}
+                    : c.current_snapshot_id
+                      ? "Hashed. Extraction pending."
+                      : "Not yet verified."}
                 </p>
+                {(c.source_health === "degraded" ||
+                  c.source_health === "quarantined") && (
+                  <p className="mt-1 text-sm text-[var(--muted)]">
+                    Check delayed. Last verified observation is unchanged.
+                  </p>
+                )}
               </li>
             ))}
           </ol>

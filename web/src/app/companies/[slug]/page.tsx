@@ -50,12 +50,21 @@ export default async function CompanyPage({
             last verified {new Date(company.last_verified_at).toLocaleString()}
           </span>
         )}
+        {(company.source_health === "degraded" ||
+          company.source_health === "quarantined") && (
+          <span className="ml-3">Check delayed</span>
+        )}
+        {company.source_health === "pending" && !company.current_snapshot_id && (
+          <span className="ml-3">Not yet verified</span>
+        )}
       </p>
 
       <h2 className="mt-12 text-xl">What they take</h2>
       {!practices?.length ? (
         <p className="mt-3 text-[var(--muted)]">
-          No extraction yet. The next successful analysis crawl fills this.
+          {company.current_snapshot_id
+            ? "No extraction yet. The next successful analysis crawl fills this."
+            : "Not yet verified. A missing or failed fetch is not an empty policy."}
         </p>
       ) : (
         <ul className="mt-4 space-y-6">
