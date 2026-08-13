@@ -1,0 +1,27 @@
+[project]
+name = "privacyradar-worker"
+version = "0.1.0"
+description = "hash-first privacy-policy crawler and openai extractor for privacyradar"
+requires-python = ">=3.12"
+dependencies = [
+  "arq>=0.26",
+  "httpx>=0.28",
+  "openai>=1.82",
+  "psycopg[binary]>=3.2",
+  "pydantic>=2.11",
+  "pydantic-settings>=2.9",
+  "python-dotenv>=1.1",
+  "pyyaml>=6.0",
+  "trafilatura>=2.0",
+]
+
+[project.scripts]
+privacyradar = "privacyradar.cli:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["privacyradar*"]

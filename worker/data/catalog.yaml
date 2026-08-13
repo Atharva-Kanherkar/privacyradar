@@ -1,0 +1,53 @@
+companies:
+  - slug: google
+    name: Google
+    website: https://google.com
+    category: big-tech
+    privacy_url: https://policies.google.com/privacy
+  # JS-rendered marketing shell. httpx only gets a stub (~300 chars).
+  # Playwright fallback is the next crawl upgrade for this URL.
+  - slug: apple
+    name: Apple
+    website: https://apple.com
+    category: big-tech
+    privacy_url: https://www.apple.com/legal/privacy/
+  - slug: meta
+    name: Meta
+    website: https://meta.com
+    category: big-tech
+    privacy_url: https://www.facebook.com/privacy/policy
+  - slug: microsoft
+    name: Microsoft
+    website: https://microsoft.com
+    category: big-tech
+    privacy_url: https://privacy.microsoft.com/en-us/privacystatement
+  - slug: amazon
+    name: Amazon
+    website: https://amazon.com
+    category: consumer
+    privacy_url: https://www.amazon.com/gp/help/customer/display.html?nodeId=GX7NJQ4ZB8MHFRNJ
+  - slug: openai
+    name: OpenAI
+    website: https://openai.com
+    category: ai
+    privacy_url: https://openai.com/policies/privacy-policy
+  - slug: anthropic
+    name: Anthropic
+    website: https://anthropic.com
+    category: ai
+    privacy_url: https://www.anthropic.com/legal/privacy
+  - slug: spotify
+    name: Spotify
+    website: https://spotify.com
+    category: consumer
+    privacy_url: https://www.spotify.com/us/legal/privacy-policy/
+  - slug: netflix
+    name: Netflix
+    website: https://netflix.com
+    category: consumer
+    privacy_url: https://www.netflix.com/privacy
+  - slug: stripe
+    name: Stripe
+    website: https://stripe.com
+    category: payments
+    privacy_url: https://stripe.com/privacy

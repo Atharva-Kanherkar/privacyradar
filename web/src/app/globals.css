@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #f4efe6;
+  --ink: #1c1917;
+  --muted: #57534e;
+  --rule: #d6cfc3;
+  --card: #fffdf8;
+  --material: #9f1239;
+}
+
+@theme inline {
+  --color-background: var(--paper);
+  --color-foreground: var(--ink);
+  --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-newsreader), ui-serif, Georgia, serif;
+}
+
+code,
+.mono {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+}

@@ -1,0 +1,32 @@
+# env
+.env
+.env.local
+.env.*.local
+!.env.example
+web/.env*.local
+
+# python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+
+# node
+node_modules/
+web/.next/
+web/out/
+
+# snapshots / crawl cache
+data/snapshots/
+*.log
+
+# agent scaffolding
+AGENTS.md
+CLAUDE.md
+
+.idea/
+.vscode/
