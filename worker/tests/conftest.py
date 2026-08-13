@@ -9,6 +9,8 @@ from urllib.parse import urlparse, urlunparse
 import psycopg
 import pytest
 
+from privacyradar.migrate import migrate
+
 
 def _default_admin_url() -> str:
     user = getpass.getuser()
@@ -85,6 +87,45 @@ def empty_database_url(postgres_admin_url: str) -> Iterator[str]:
                 (name,),
             )
             conn.execute(f'drop database if exists "{name}"')
+
+
+@pytest.fixture(scope="session")
+def migrated_database_url(postgres_admin_url: str) -> Iterator[str]:
+    name = f"privacyradar_it_{uuid.uuid4().hex[:12]}"
+    url = _with_database(postgres_admin_url, name)
+    try:
+        with psycopg.connect(postgres_admin_url, autocommit=True) as conn:
+            conn.execute(f'create database "{name}"')
+    except psycopg.Error as exc:
+        if os.environ.get("CI"):
+            pytest.fail(f"could not create integration database: {exc}")
+        pytest.skip(f"could not create integration database: {exc}")
+    migrate(url)
+    try:
+        yield url
+    finally:
+        with psycopg.connect(postgres_admin_url, autocommit=True) as conn:
+            conn.execute(
+                """
+                select pg_terminate_backend(pid)
+                from pg_stat_activity
+                where datname = %s and pid <> pg_backend_pid()
+                """,
+                (name,),
+            )
+            conn.execute(f'drop database if exists "{name}"')
+
+
+@pytest.fixture
+def db_url(migrated_database_url: str) -> str:
+    with psycopg.connect(migrated_database_url, autocommit=True) as conn:
+        conn.execute(
+            """
+            truncate companies, policy_sources, snapshots, extractions, change_events
+            restart identity cascade
+            """
+        )
+    return migrated_database_url
 
 
 @pytest.fixture(scope="session")

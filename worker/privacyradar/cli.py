@@ -4,9 +4,11 @@ import argparse
 import sys
 
 from privacyradar.catalog import seed_catalog
+from privacyradar.db import connect
 from privacyradar.migrate import migrate
 from privacyradar.pipeline import crawl_all, extract_missing
 from privacyradar.settings import settings
+from privacyradar.testing.persist import seed_public_fixtures
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -15,6 +17,10 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("migrate", help="Apply numbered forward-only SQL migrations")
     sub.add_parser("seed", help="Load worker/data/catalog.yaml into Postgres")
+    sub.add_parser(
+        "seed-fixtures",
+        help="Load deterministic public fixtures for local and browser tests",
+    )
     sub.add_parser("crawl", help="Fetch every enabled policy URL once")
     sub.add_parser(
         "extract",
@@ -32,6 +38,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "seed":
         n = seed_catalog()
         print(f"seeded {n} companies")
+        return 0
+    if args.cmd == "seed-fixtures":
+        with connect() as conn:
+            n = seed_public_fixtures(conn)
+            conn.commit()
+        print(f"seeded {n} fixture companies")
         return 0
     if args.cmd == "crawl":
         for line in crawl_all():
