@@ -26,7 +26,7 @@ export default async function CompaniesPage() {
           <tr className="border-b border-[var(--rule)] text-[var(--muted)]">
             <th className="py-2 font-normal">Company</th>
             <th className="py-2 font-normal">Category</th>
-            <th className="py-2 font-normal">Last fetch</th>
+            <th className="py-2 font-normal">Last verified</th>
             <th className="py-2 font-normal">Status</th>
           </tr>
         </thead>
