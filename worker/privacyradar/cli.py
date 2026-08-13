@@ -7,6 +7,7 @@ from privacyradar.catalog import seed_catalog
 from privacyradar.db import connect
 from privacyradar.migrate import migrate
 from privacyradar.pipeline import crawl_all, extract_missing
+from privacyradar.reconcile import format_report, reconcile_observations
 from privacyradar.settings import settings
 from privacyradar.testing.persist import seed_public_fixtures
 
@@ -20,6 +21,10 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser(
         "seed-fixtures",
         help="Load deterministic public fixtures for local and browser tests",
+    )
+    sub.add_parser(
+        "reconcile-observations",
+        help="Idempotent backfill of observations from existing snapshots",
     )
     sub.add_parser("crawl", help="Fetch every enabled policy URL once")
     sub.add_parser(
@@ -52,6 +57,16 @@ def main(argv: list[str] | None = None) -> int:
             print(f"seed-fixtures failed: {type(exc).__name__}", file=sys.stderr)
             return 1
         print(f"seeded {n} fixture companies")
+        return 0
+    if args.cmd == "reconcile-observations":
+        try:
+            with connect() as conn:
+                report = reconcile_observations(conn)
+                conn.commit()
+        except Exception as exc:
+            print(f"reconcile-observations failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
+        print(format_report(report))
         return 0
     if args.cmd == "crawl":
         for line in crawl_all():

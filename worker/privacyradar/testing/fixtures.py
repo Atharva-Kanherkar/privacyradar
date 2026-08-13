@@ -140,7 +140,7 @@ def make_observation(
     fetch_error: str | None = None,
     clock: datetime = FROZEN_NOW,
 ) -> ObservationFixture:
-    digest = doc_hash(markdown) if markdown else "empty"
+    digest = doc_hash(markdown)
     return ObservationFixture(
         id=stable_uuid("observation", str(source.id), digest),
         source_id=source.id,
