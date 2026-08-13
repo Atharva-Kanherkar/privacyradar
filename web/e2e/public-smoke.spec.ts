@@ -27,6 +27,34 @@ test.describe("public smoke", () => {
     expect((await page.goto("/companies"))?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1, name: "Catalog" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Signal" })).toBeVisible();
+    await expect(page.getByText("timeout")).not.toBeVisible();
+    await expect(page.getByText("healthy").or(page.getByText("pending"))).toBeVisible();
+
+    const companies = await request.get("/api/companies?q=signal");
+    expect(companies.status()).toBe(200);
+    const list = (await companies.json()) as Array<{
+      slug: string;
+      source_health: string;
+      last_error?: string;
+    }>;
+    expect(list.some((row) => row.slug === "signal")).toBe(true);
+    expect(JSON.stringify(list)).not.toMatch(/last_error/);
+    expect(JSON.stringify(list)).not.toMatch(/postgresql:\/\//);
+
+    const detail = await request.get("/api/companies/signal");
+    expect(detail.status()).toBe(200);
+    const companyJson = (await detail.json()) as {
+      current_snapshot_id: string | null;
+      region: string | null;
+    };
+    expect(companyJson.current_snapshot_id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
+    expect(companyJson.region).toBeTruthy();
+    expect((await request.get("/api/companies/does-not-exist")).status()).toBe(404);
+    expect(
+      (await request.get("/api/changes/00000000-0000-0000-0000-000000000000")).status(),
+    ).toBe(404);
 
     expect((await page.goto("/companies/signal"))?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1, name: "Signal" })).toBeVisible();

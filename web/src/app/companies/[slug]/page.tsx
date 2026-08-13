@@ -45,9 +45,9 @@ export default async function CompanyPage({
         ) : (
           "No privacy URL"
         )}
-        {company.last_fetched && (
+        {company.last_verified_at && (
           <span className="ml-3 font-mono text-xs">
-            fetched {new Date(company.last_fetched).toLocaleString()}
+            last verified {new Date(company.last_verified_at).toLocaleString()}
           </span>
         )}
       </p>
