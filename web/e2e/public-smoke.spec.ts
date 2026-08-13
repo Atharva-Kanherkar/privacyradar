@@ -59,6 +59,7 @@ test.describe("public smoke", () => {
     expect((await page.goto("/companies/signal"))?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1, name: "Signal" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Current privacy policy" })).toBeVisible();
+    await expect(page.getByText("Not yet verified. A missing or failed fetch is not an empty policy.")).toHaveCount(0);
 
     expect((await page.goto("/about"))?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1, name: "About" })).toBeVisible();
