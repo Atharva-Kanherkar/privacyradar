@@ -61,17 +61,20 @@ def test_discover_migrations_rejects_duplicate_versions(tmp_path: Path) -> None:
         discover_migrations(tmp_path)
 
 
-def test_default_migrations_include_initial() -> None:
+def test_default_migrations_include_initial_and_observations() -> None:
     found = discover_migrations(DEFAULT_MIGRATIONS_DIR)
-    assert found[0].version == "0001"
+    assert [item.version for item in found] == ["0001", "0002"]
     assert found[0].name == "initial"
+    assert found[1].name == "immutable_observations"
 
 
-def test_schema_sql_matches_0001_body() -> None:
-    initial = (DEFAULT_MIGRATIONS_DIR / "0001_initial.sql").read_text()
+def test_schema_sql_is_current_head_reference() -> None:
     reference = Path(__file__).resolve().parents[2] / "db" / "schema.sql"
     body = reference.read_text()
-    marker = "-- privacyradar source of truth."
-    assert initial.startswith(marker)
-    assert marker in body
-    assert body[body.index(marker) :] == initial
+    initial = (DEFAULT_MIGRATIONS_DIR / "0001_initial.sql").read_text()
+    assert "create table if not exists companies" in body
+    assert "create table if not exists snapshots" in initial
+    assert "create table if not exists source_attempts" in body
+    assert "create table if not exists observations" in body
+    assert "create table if not exists document_changes" in body
+    assert "schema_migrations" not in body

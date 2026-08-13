@@ -121,7 +121,15 @@ def db_url(migrated_database_url: str) -> str:
     with psycopg.connect(migrated_database_url, autocommit=True) as conn:
         conn.execute(
             """
-            truncate companies, policy_sources, snapshots, extractions, change_events
+            truncate
+              document_changes,
+              observations,
+              source_attempts,
+              change_events,
+              extractions,
+              snapshots,
+              policy_sources,
+              companies
             restart identity cascade
             """
         )
