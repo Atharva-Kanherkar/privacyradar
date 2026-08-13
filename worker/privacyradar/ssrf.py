@@ -30,6 +30,14 @@ class Resolver(Protocol):
 
 
 @dataclass(frozen=True)
+class SsrfPolicy:
+    """Production policy allows no loopback. Tests may allow named fixture hosts."""
+
+    allow_loopback_hosts: frozenset[str] = frozenset()
+    extra_ports: frozenset[int] = frozenset()
+
+
+@dataclass(frozen=True)
 class ResolvedTarget:
     url: str
     hostname: str
@@ -94,23 +102,23 @@ def _default_port(scheme: str) -> int:
     return 443 if scheme == "https" else 80
 
 
-def classify_url(url: str, *, resolver: Resolver | None = None) -> ResolvedTarget:
+def classify_url(
+    url: str,
+    *,
+    resolver: Resolver | None = None,
+    policy: SsrfPolicy | None = None,
+) -> ResolvedTarget:
     """Reject non-public, non-http(s), credentialed, or odd-port URLs."""
     dns = resolver or DnsResolver()
+    rules = policy or SsrfPolicy()
     parsed = urlparse(url)
     if parsed.scheme not in ALLOWED_SCHEMES:
         raise SsrfError("ssrf")
     if parsed.username is not None or parsed.password is not None:
         raise SsrfError("ssrf")
+    port = parsed.port if parsed.port is not None else _default_port(parsed.scheme)
     hostname = parsed.hostname
     if not hostname:
-        raise SsrfError("ssrf")
-    port = parsed.port if parsed.port is not None else _default_port(parsed.scheme)
-    if port not in ALLOWED_PORTS:
-        raise SsrfError("ssrf")
-    if parsed.scheme == "http" and port != 80:
-        raise SsrfError("ssrf")
-    if parsed.scheme == "https" and port != 443:
         raise SsrfError("ssrf")
 
     ips: list[str]
@@ -123,7 +131,21 @@ def classify_url(url: str, *, resolver: Resolver | None = None) -> ResolvedTarge
 
     if not ips:
         raise SsrfError("ssrf")
+
+    host_key = hostname.lower().rstrip(".")
+    port_ok = port in ALLOWED_PORTS or (
+        host_key in rules.allow_loopback_hosts and port in rules.extra_ports
+    )
+    if not port_ok:
+        raise SsrfError("ssrf")
+    if host_key not in rules.allow_loopback_hosts:
+        if parsed.scheme == "http" and port != 80:
+            raise SsrfError("ssrf")
+        if parsed.scheme == "https" and port != 443:
+            raise SsrfError("ssrf")
     for ip in ips:
+        if _allowed_loopback(host_key, ip, rules):
+            continue
         if is_blocked_ip(ip):
             raise SsrfError("ssrf")
 
@@ -138,10 +160,26 @@ def classify_url(url: str, *, resolver: Resolver | None = None) -> ResolvedTarge
     )
 
 
+def _allowed_loopback(hostname: str, ip: str, policy: SsrfPolicy) -> bool:
+    if hostname not in policy.allow_loopback_hosts:
+        return False
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    if addr.version == 6 and addr.ipv4_mapped is not None:
+        addr = addr.ipv4_mapped
+    return bool(addr.is_loopback)
+
+
 def classify_redirect(
-    current_url: str, location: str, *, resolver: Resolver | None = None
+    current_url: str,
+    location: str,
+    *,
+    resolver: Resolver | None = None,
+    policy: SsrfPolicy | None = None,
 ) -> ResolvedTarget:
     if not location or location.strip() == "":
         raise SsrfError("ssrf")
     joined = urljoin(current_url, location)
-    return classify_url(joined, resolver=resolver)
+    return classify_url(joined, resolver=resolver, policy=policy)

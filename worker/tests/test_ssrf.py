@@ -4,6 +4,7 @@ import pytest
 
 from privacyradar.ssrf import (
     SsrfError,
+    SsrfPolicy,
     classify_redirect,
     classify_url,
     is_blocked_ip,
@@ -129,3 +130,25 @@ def test_relative_redirect_stays_on_public_host() -> None:
     )
     assert target.hostname == "example.test"
     assert target.url.endswith("/new")
+
+
+def test_ssrf_loopback_fixture_host_requires_policy() -> None:
+    resolver = FakeResolver({"fixtures.privacyradar.test": ["127.0.0.1"]})
+    with pytest.raises(SsrfError):
+        classify_url(
+            "http://fixtures.privacyradar.test/privacy",
+            resolver=resolver,
+        )
+    policy = SsrfPolicy(
+        allow_loopback_hosts=frozenset({"fixtures.privacyradar.test"}),
+        extra_ports=frozenset({8765}),
+    )
+    target = classify_url(
+        "http://fixtures.privacyradar.test:8765/privacy",
+        resolver=resolver,
+        policy=policy,
+    )
+    assert target.ip == "127.0.0.1"
+    assert target.port == 8765
+    with pytest.raises(SsrfError):
+        classify_url("http://127.0.0.1:8765/privacy", resolver=resolver, policy=policy)

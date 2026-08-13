@@ -20,12 +20,17 @@ SAFE_ERROR_CODES = frozenset(
         "tls",
         "http_4xx",
         "http_5xx",
+        "http_429",
         "empty",
         "short",
         "wrong_type",
         "normalize_failed",
         "network",
         "blocked",
+        "robots",
+        "ssrf",
+        "oversize",
+        "moved",
     }
 )
 
@@ -36,6 +41,7 @@ class Classification:
     status: str
     error_code: str | None
     normalized: NormalizeResult | None
+    not_modified: bool = False
 
 
 def safe_error_code(value: str | None) -> str:
@@ -52,6 +58,10 @@ def safe_error_code(value: str | None) -> str:
         return "tls"
     if "blocked" in lowered or "robots" in lowered:
         return "blocked"
+    if "ssrf" in lowered:
+        return "ssrf"
+    if "oversize" in lowered or "too large" in lowered:
+        return "oversize"
     return "network"
 
 
@@ -64,6 +74,18 @@ def classify_fetch(fetched: FetchResult) -> Classification:
     if status <= 0:
         return Classification(
             valid=False, status="failed", error_code="network", normalized=None
+        )
+    if status == 304:
+        return Classification(
+            valid=True,
+            status="succeeded",
+            error_code=None,
+            normalized=None,
+            not_modified=True,
+        )
+    if status == 429:
+        return Classification(
+            valid=False, status="failed", error_code="http_429", normalized=None
         )
     if 400 <= status < 500:
         return Classification(

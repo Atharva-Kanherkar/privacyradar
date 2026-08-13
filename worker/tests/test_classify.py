@@ -42,6 +42,22 @@ def test_classify_http_errors() -> None:
     assert classify_fetch(_fetched(status=403, markdown="")).error_code == "http_4xx"
     assert classify_fetch(_fetched(status=404, markdown="")).error_code == "http_4xx"
     assert classify_fetch(_fetched(status=500, markdown="")).error_code == "http_5xx"
+    assert classify_fetch(_fetched(status=429, markdown="")).error_code == "http_429"
+
+
+def test_conditional_304_not_modified_classification() -> None:
+    result = classify_fetch(_fetched(status=304, markdown="", html="", body=b""))
+    assert result.valid
+    assert result.not_modified
+    assert result.error_code is None
+    assert result.normalized is None
+
+
+def test_classify_ssrf_and_oversize_stay_safe_codes() -> None:
+    assert classify_fetch(_fetched(error="ssrf", markdown="")).error_code == "ssrf"
+    assert classify_fetch(_fetched(error="oversize", markdown="")).error_code == "oversize"
+    assert classify_fetch(_fetched(error="robots", markdown="")).error_code == "robots"
+    assert classify_fetch(_fetched(error="moved", markdown="")).error_code == "moved"
 
 
 def test_classify_wrong_type() -> None:
