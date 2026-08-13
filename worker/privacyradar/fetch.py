@@ -10,7 +10,7 @@ from typing import Protocol
 from urllib.parse import urlparse
 
 from privacyradar.crawl import FetchResult
-from privacyradar.robots import FailClosedRobots, RobotsChecker
+from privacyradar.robots import CachedRobots, RobotsChecker, StaticRobots
 from privacyradar.settings import settings
 from privacyradar.ssrf import (
     FETCH_TIMEOUT_SECONDS,
@@ -133,8 +133,23 @@ def fetch_policy_url(
     robots: RobotsChecker | None = None,
     hop_client: HopClient | None = None,
 ) -> FetchResult:
-    robots_checker = robots if robots is not None else FailClosedRobots()
     client = hop_client if hop_client is not None else PinnedHopClient()
+    if robots is not None:
+        robots_checker = robots
+    else:
+        def _load_robots(robots_url: str) -> str | None:
+            document = fetch_policy_url(
+                robots_url,
+                resolver=resolver,
+                policy=policy,
+                robots=StaticRobots(True),
+                hop_client=client,
+            )
+            if document.error or document.status != 200:
+                return None
+            return document.body.decode("utf-8", errors="replace")
+
+        robots_checker = CachedRobots(_load_robots)
     try:
         target = classify_url(url, resolver=resolver, policy=policy)
     except SsrfError:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -7,6 +8,9 @@ import yaml
 
 from privacyradar.db import connect
 from privacyradar.settings import settings
+from privacyradar.ssrf import SsrfError, classify_url
+
+logger = logging.getLogger(__name__)
 
 
 def load_catalog(path: Path | None = None) -> list[dict[str, Any]]:
@@ -35,6 +39,14 @@ def seed_catalog() -> int:
                 company = cur.fetchone()
                 assert company is not None
                 company_id = company["id"]
+                try:
+                    classify_url(str(row["privacy_url"]))
+                except SsrfError:
+                    logger.info(
+                        "catalog url rejected",
+                        extra={"slug": row["slug"], "error_code": "ssrf"},
+                    )
+                    continue
                 cur.execute(
                     """
                     insert into policy_sources (company_id, kind, url, region)

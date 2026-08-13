@@ -70,7 +70,16 @@ def test_fetch_ssrf_localhost_blocked_without_resolver_override() -> None:
     assert hop.calls == []
 
 
-def test_robots_disallow_does_not_call_hop_client() -> None:
+def test_robots_fetch_failure_fail_closed_on_default_checker() -> None:
+    hop = FakeHop([HopResponse(0, {}, b"", error_code="timeout")])
+    resolver = FakeResolver({"example.test": [PUBLIC_IP]})
+    result = fetch_policy_url(
+        "https://example.test/privacy",
+        resolver=resolver,
+        hop_client=hop,
+    )
+    assert result.error == "robots"
+    assert hop.calls == ["https://example.test/robots.txt"]
     hop = FakeHop([HopResponse(200, {"content-type": "text/html"}, POLICY_HTML.encode())])
     resolver = FakeResolver({"example.test": [PUBLIC_IP]})
     result = fetch_policy_url(
