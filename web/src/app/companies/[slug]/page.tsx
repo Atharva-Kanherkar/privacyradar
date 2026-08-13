@@ -55,8 +55,7 @@ export default async function CompanyPage({
       <h2 className="mt-12 text-xl">What they take</h2>
       {!practices?.length ? (
         <p className="mt-3 text-[var(--muted)]">
-          No extraction yet. First successful crawl with{" "}
-          <code className="mono text-[13px]">OPENAI_API_KEY</code> fills this.
+          No extraction yet. The next successful analysis crawl fills this.
         </p>
       ) : (
         <ul className="mt-4 space-y-6">

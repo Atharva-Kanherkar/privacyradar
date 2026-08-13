@@ -43,9 +43,14 @@ test.describe("public smoke", () => {
     expect(missing.status()).toBe(404);
   });
 
-  test("home heading remains visible at 320px", async ({ page }) => {
+  test("home heading and nav remain visible at 320px", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 });
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Companies" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "About" })).toBeVisible();
+    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
+    expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
   });
 });
