@@ -3,6 +3,14 @@ import { listCompanies } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+function statusLabel(
+  health: "pending" | "healthy" | "degraded" | "quarantined" | null,
+): string {
+  if (health === "healthy") return "healthy";
+  if (health === "degraded" || health === "quarantined") return "check delayed";
+  return "pending";
+}
+
 export default async function CompaniesPage() {
   const companies = await listCompanies();
 
@@ -37,7 +45,7 @@ export default async function CompaniesPage() {
                   : "never"}
               </td>
               <td className="py-3 text-[var(--muted)]">
-                {c.last_error ? c.last_error : c.last_hash ? "hashed" : "queued"}
+                {statusLabel(c.source_health)}
               </td>
             </tr>
           ))}

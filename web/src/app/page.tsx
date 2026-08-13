@@ -85,8 +85,8 @@ export default async function Home() {
                 <p className="mt-2 text-sm text-[var(--muted)]">
                   {c.data_types.length > 0
                     ? c.data_types.join(" · ")
-                    : c.last_error
-                      ? c.last_error
+                    : c.source_health === "degraded" || c.source_health === "quarantined"
+                      ? "Check delayed. Last verified observation is unchanged."
                       : "Hashed. Extraction pending."}
                 </p>
               </li>
