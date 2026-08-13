@@ -5,8 +5,9 @@ from typing import Any
 
 from privacyradar import db
 from privacyradar.analyze import extract_practices, judge_materiality
-from privacyradar.crawl import FetchResult, fetch_url, polite_pause
+from privacyradar.crawl import FetchResult, fetch_url
 from privacyradar.hashing import changed_sections
+from privacyradar.leases import drain_once
 from privacyradar.observe import observe_source
 from privacyradar.schema import MaterialityJudgement, PracticeDocument
 from privacyradar.settings import settings
@@ -120,15 +121,11 @@ def process_source(
         return f"{source['slug']}: {judgement.materiality} - {detail}"
 
 
-def crawl_all() -> list[str]:
-    results: list[str] = []
+def crawl_all(fetch: FetchFn | None = None) -> list[str]:
     with db.connect() as conn:
-        sources = db.fetch_enabled_sources(conn)
-    for i, source in enumerate(sources):
-        if i:
-            polite_pause()
-        results.append(process_source(source))
-    return results
+        results = drain_once(conn, fetch=fetch)
+        conn.commit()
+        return results
 
 
 def extract_missing() -> list[str]:

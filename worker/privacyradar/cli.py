@@ -26,7 +26,16 @@ def main(argv: list[str] | None = None) -> int:
         "reconcile-observations",
         help="Idempotent backfill of observations from existing snapshots",
     )
-    sub.add_parser("crawl", help="Fetch every enabled policy URL once")
+    retry = sub.add_parser("source-retry", help="Replay a quarantined or stalled source")
+    retry.add_argument("source_id")
+    retry.add_argument("--actor", required=True)
+    disable = sub.add_parser("source-disable", help="Disable a source and cancel pending jobs")
+    disable.add_argument("source_id")
+    disable.add_argument("--actor", required=True)
+    enable = sub.add_parser("source-enable", help="Re-enable a source")
+    enable.add_argument("source_id")
+    enable.add_argument("--actor", required=True)
+    sub.add_parser("fetch-stats", help="Print fetch queue counts without URLs")
     sub.add_parser(
         "extract",
         help="Backfill OpenAI extraction on snapshots that have no practices yet",
@@ -71,6 +80,54 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "crawl":
         for line in crawl_all():
             print(line)
+        return 0
+    if args.cmd == "source-retry":
+        from privacyradar.operator import source_retry
+
+        try:
+            with connect() as conn:
+                action_id = source_retry(conn, args.source_id, actor=args.actor)
+                conn.commit()
+        except Exception as exc:
+            print(f"source-retry failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
+        print(f"retry queued {action_id}")
+        return 0
+    if args.cmd == "source-disable":
+        from privacyradar.operator import source_disable
+
+        try:
+            with connect() as conn:
+                action_id = source_disable(conn, args.source_id, actor=args.actor)
+                conn.commit()
+        except Exception as exc:
+            print(f"source-disable failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
+        print(f"disabled {action_id}")
+        return 0
+    if args.cmd == "source-enable":
+        from privacyradar.operator import source_enable
+
+        try:
+            with connect() as conn:
+                action_id = source_enable(conn, args.source_id, actor=args.actor)
+                conn.commit()
+        except Exception as exc:
+            print(f"source-enable failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
+        print(f"enabled {action_id}")
+        return 0
+    if args.cmd == "fetch-stats":
+        from privacyradar.leases import fetch_stats
+
+        try:
+            with connect() as conn:
+                stats = fetch_stats(conn)
+        except Exception as exc:
+            print(f"fetch-stats failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
+        for key, value in stats.items():
+            print(f"{key}={value}")
         return 0
     if args.cmd == "extract":
         for line in extract_missing():

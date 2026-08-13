@@ -6,7 +6,9 @@ import pytest
 
 from privacyradar import pipeline
 from privacyradar.crawl import FetchResult
+from privacyradar.jobs import WorkerSettings
 from privacyradar.observe import ObserveMetrics, ObserveResult
+from privacyradar.retry import HTTP_CONCURRENCY
 
 SOURCE: dict[str, Any] = {
     "source_id": "source-1",
@@ -110,17 +112,19 @@ def test_process_source_stores_first_snapshot_without_llm(
     assert pipeline.process_source(SOURCE).endswith("skipped LLM (no key)")
 
 
-def test_crawl_all_pauses_between_sources(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_crawl_all_uses_dispatcher(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(pipeline.db, "connect", fake_connection)
     monkeypatch.setattr(
-        pipeline.db,
-        "fetch_enabled_sources",
-        lambda _conn: [SOURCE, {**SOURCE, "slug": "second"}],
+        pipeline,
+        "drain_once",
+        lambda _conn, fetch=None: ["first", "second"],
     )
-    process = Mock(side_effect=["first", "second"])
-    pause = Mock()
-    monkeypatch.setattr(pipeline, "process_source", process)
-    monkeypatch.setattr(pipeline, "polite_pause", pause)
 
     assert pipeline.crawl_all() == ["first", "second"]
-    pause.assert_called_once_with()
+
+
+def test_worker_settings_use_per_source_pool() -> None:
+    names = [item.__name__ for item in WorkerSettings.functions]
+    assert "schedule_due_job" in names
+    assert "fetch_due_job" in names
+    assert WorkerSettings.max_jobs == HTTP_CONCURRENCY

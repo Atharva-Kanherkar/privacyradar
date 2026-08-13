@@ -51,6 +51,10 @@ def test_cli_migrate_and_seed_fixtures(
     assert "seeded 0 fixture companies" in capsys.readouterr().out
     assert main(["reconcile-observations"]) == 0
     assert "observations_created=0" in capsys.readouterr().out
+    assert main(["fetch-stats"]) == 0
+    stats_out = capsys.readouterr().out
+    assert "overdue_sources=" in stats_out
+    assert "postgresql://" not in stats_out
 
 
 def test_cli_migrate_unavailable_database_exits_nonzero(
