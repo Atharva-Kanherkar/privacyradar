@@ -155,6 +155,17 @@ def test_future_tables_are_in_memory_only(db_url: str) -> None:
             persist_notification(conn, make_notification(user))
 
 
+def test_failed_observation_fixture_is_not_persisted_as_snapshot(db_url: str) -> None:
+    company = make_company(slug="failed-obs")
+    source = make_source(company)
+    observation = make_observation(source, fetch_error="timeout")
+    with _connect(db_url) as conn:
+        persist_company(conn, company)
+        persist_source(conn, source)
+        with pytest.raises(FixturePersistenceUnsupported, match="source_attempts"):
+            persist_observation(conn, observation)
+
+
 def test_seed_public_fixtures_is_idempotent(db_url: str) -> None:
     with _connect(db_url) as conn:
         assert seed_public_fixtures(conn) == 1

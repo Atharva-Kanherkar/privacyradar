@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
+from uuid import uuid5
 
 import psycopg
 from psycopg.types.json import Json
 
+from privacyradar.hashing import NORMALIZER_VERSION
 from privacyradar.testing.fixtures import (
     ClaimFixture,
     CompanyFixture,
@@ -70,13 +73,20 @@ def persist_source(
 def persist_observation(
     conn: psycopg.Connection[dict[str, Any]], observation: ObservationFixture
 ) -> None:
+    if observation.fetch_error is not None:
+        raise FixturePersistenceUnsupported(
+            "failed fetches persist as source_attempts, not observations"
+        )
+    raw = observation.raw_html.encode("utf-8")
+    raw_digest = hashlib.sha256(raw).hexdigest()
     conn.execute(
         """
         insert into snapshots (
           id, source_id, fetched_at, http_status, content_type, raw_html, markdown,
-          doc_hash, section_hashes, fetch_error
+          doc_hash, section_hashes, fetch_error, final_url, region, strategy,
+          byte_count, raw_sha256, normalized_sha256, normalizer_version, is_valid
         )
-        values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        values (%s, %s, %s, %s, %s, %s, %s, %s, %s, null, %s, %s, 'http', %s, %s, %s, %s, true)
         """,
         (
             str(observation.id),
@@ -88,7 +98,81 @@ def persist_observation(
             observation.markdown,
             observation.doc_hash,
             Json(observation.section_hashes),
-            observation.fetch_error,
+            observation.resolved_url,
+            observation.region,
+            len(raw),
+            raw_digest,
+            observation.doc_hash,
+            NORMALIZER_VERSION,
+        ),
+    )
+    attempt_id = str(uuid5(observation.id, "attempt"))
+    conn.execute(
+        """
+        insert into source_attempts (
+          id, source_id, started_at, finished_at, strategy, status,
+          http_status, content_type, request_url, resolved_url,
+          snapshot_id, byte_count, normalizer_version
+        )
+        values (%s, %s, %s, %s, 'http', 'succeeded', %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            attempt_id,
+            str(observation.source_id),
+            observation.fetched_at,
+            observation.fetched_at,
+            observation.http_status,
+            observation.content_type,
+            observation.resolved_url,
+            observation.resolved_url,
+            str(observation.id),
+            len(raw),
+            NORMALIZER_VERSION,
+        ),
+    )
+    conn.execute(
+        """
+        insert into observations (
+          id, source_id, snapshot_id, attempt_id, observed_at, region,
+          previous_snapshot_id
+        )
+        values (%s, %s, %s, %s, %s, %s, null)
+        """,
+        (
+            str(observation.id),
+            str(observation.source_id),
+            str(observation.id),
+            attempt_id,
+            observation.fetched_at,
+            observation.region,
+        ),
+    )
+    conn.execute(
+        """
+        update source_attempts
+        set observation_id = %s
+        where id = %s
+        """,
+        (str(observation.id), attempt_id),
+    )
+    conn.execute(
+        """
+        update policy_sources
+        set current_snapshot_id = %s,
+            current_observation_id = %s,
+            health_status = 'healthy',
+            last_attempt_at = %s,
+            last_success_at = %s,
+            consecutive_failures = 0,
+            last_failure_code = null
+        where id = %s
+        """,
+        (
+            str(observation.id),
+            str(observation.id),
+            observation.fetched_at,
+            observation.fetched_at,
+            str(observation.source_id),
         ),
     )
 

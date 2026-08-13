@@ -26,6 +26,7 @@ def _source_row(company_slug: str = "signal") -> tuple[dict[str, object], object
         "slug": company.slug,
         "name": company.name,
         "url": source.url,
+        "region": source.region,
     }
     return payload, company, source
 
@@ -85,10 +86,25 @@ def test_process_source_fetch_failure_does_not_look_like_empty_success(
 
     assert "fetch failed (timeout)" in result
     with _connect(db_url) as conn:
-        row = conn.execute(
-            "select fetch_error, markdown from snapshots where source_id = %s",
+        snap = conn.execute(
+            "select count(*) as n from snapshots where source_id = %s",
             (str(source.id),),
         ).fetchone()
-    assert row is not None
-    assert row["fetch_error"] == "timeout"
-    assert row["markdown"] == ""
+        attempt = conn.execute(
+            """
+            select status, error_code from source_attempts
+            where source_id = %s
+            """,
+            (str(source.id),),
+        ).fetchone()
+        health = conn.execute(
+            "select health_status, current_snapshot_id from policy_sources where id = %s",
+            (str(source.id),),
+        ).fetchone()
+    assert snap is not None and snap["n"] == 0
+    assert attempt is not None
+    assert attempt["status"] == "failed"
+    assert attempt["error_code"] == "timeout"
+    assert health is not None
+    assert health["health_status"] == "degraded"
+    assert health["current_snapshot_id"] is None

@@ -6,6 +6,7 @@ import pytest
 
 from privacyradar import pipeline
 from privacyradar.crawl import FetchResult
+from privacyradar.observe import ObserveMetrics, ObserveResult
 
 SOURCE: dict[str, Any] = {
     "source_id": "source-1",
@@ -13,6 +14,7 @@ SOURCE: dict[str, Any] = {
     "slug": "example",
     "name": "Example",
     "url": "https://example.com/privacy",
+    "region": "global",
 }
 
 
@@ -22,7 +24,9 @@ def fake_connection() -> Any:
 
 
 def result(
-    *, markdown: str = "# Privacy\nWe collect email.", error: str | None = None
+    *,
+    markdown: str = "# Privacy\nWe collect email address to create accounts.",
+    error: str | None = None,
 ) -> FetchResult:
     return FetchResult(
         url=SOURCE["url"],
@@ -34,15 +38,31 @@ def result(
     )
 
 
-def test_process_source_stores_fetch_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+def _observed(**overrides: Any) -> ObserveResult:
+    payload: dict[str, Any] = {
+        "outcome": "failed",
+        "message": "example: fetch failed (timeout)",
+        "error_code": "timeout",
+        "attempt_id": "attempt-1",
+        "snapshot_id": None,
+        "observation_id": None,
+        "document_change_id": None,
+        "current_snapshot_id": None,
+        "health_status": "degraded",
+        "metrics": ObserveMetrics(fetch_attempts=1, failed_attempts=1),
+    }
+    payload.update(overrides)
+    return ObserveResult(**payload)
+
+
+def test_process_source_reports_classified_fetch_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(pipeline, "fetch_url", lambda _url: result(markdown="", error="timeout"))
     monkeypatch.setattr(pipeline.db, "connect", fake_connection)
-    monkeypatch.setattr(pipeline.db, "latest_snapshot", lambda *_args: None)
-    insert_snapshot = Mock(return_value={"id": "snapshot-1"})
-    monkeypatch.setattr(pipeline.db, "insert_snapshot", insert_snapshot)
+    monkeypatch.setattr(pipeline, "observe_source", lambda *_args, **_kwargs: _observed())
 
     assert pipeline.process_source(SOURCE) == "example: fetch failed (timeout)"
-    assert insert_snapshot.call_args.kwargs["error"] == "timeout"
 
 
 def test_process_source_skips_unchanged_snapshot(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -50,13 +70,16 @@ def test_process_source_skips_unchanged_snapshot(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(pipeline, "fetch_url", lambda _url: fetched)
     monkeypatch.setattr(pipeline.db, "connect", fake_connection)
     monkeypatch.setattr(
-        pipeline.db,
-        "latest_snapshot",
-        lambda *_args: {
-            "id": "snapshot-1",
-            "doc_hash": pipeline.doc_hash(fetched.markdown),
-            "markdown": fetched.markdown,
-        },
+        pipeline,
+        "observe_source",
+        lambda *_args, **_kwargs: _observed(
+            outcome="deduped",
+            message="example: unchanged (abc1234567)",
+            error_code=None,
+            snapshot_id="snapshot-1",
+            health_status="healthy",
+            metrics=ObserveMetrics(fetch_attempts=1, deduped=1),
+        ),
     )
     monkeypatch.setattr(pipeline.settings, "openai_api_key", "")
 
@@ -68,9 +91,19 @@ def test_process_source_stores_first_snapshot_without_llm(
 ) -> None:
     monkeypatch.setattr(pipeline, "fetch_url", lambda _url: result())
     monkeypatch.setattr(pipeline.db, "connect", fake_connection)
-    monkeypatch.setattr(pipeline.db, "latest_snapshot", lambda *_args: None)
     monkeypatch.setattr(
-        pipeline.db, "insert_snapshot", Mock(return_value={"id": "snapshot-1"})
+        pipeline,
+        "observe_source",
+        lambda *_args, **_kwargs: _observed(
+            outcome="new_version",
+            message="example: first snapshot stored",
+            error_code=None,
+            snapshot_id="snapshot-1",
+            observation_id="obs-1",
+            document_change_id=None,
+            health_status="healthy",
+            metrics=ObserveMetrics(fetch_attempts=1, new_versions=1),
+        ),
     )
     monkeypatch.setattr(pipeline.settings, "openai_api_key", "")
 

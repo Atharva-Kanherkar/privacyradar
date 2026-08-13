@@ -17,6 +17,7 @@ class FetchResult:
     html: str
     markdown: str
     error: str | None = None
+    body: bytes = b""
 
 
 def fetch_url(url: str) -> FetchResult:
@@ -38,23 +39,42 @@ def fetch_url(url: str) -> FetchResult:
             error=str(exc),
         )
 
-    html = response.text
-    markdown = trafilatura.extract(
-        html,
-        url=str(response.url),
-        output_format="markdown",
-        include_comments=False,
-        include_tables=True,
-        favor_recall=True,
-    ) or ""
+    content_type = response.headers.get("content-type", "")
+    body = response.content
+    html = ""
+    markdown = ""
+    error: str | None = None
+    if "pdf" in content_type.lower():
+        from privacyradar.normalize import pdf_to_text
+
+        markdown = pdf_to_text(body)
+        if not markdown.strip():
+            error = "empty"
+    else:
+        html = response.text
+        markdown = (
+            trafilatura.extract(
+                html,
+                url=str(response.url),
+                output_format="markdown",
+                include_comments=False,
+                include_tables=True,
+                favor_recall=True,
+            )
+            or ""
+        )
+        markdown = markdown.strip()
+        if not markdown:
+            error = "empty"
 
     return FetchResult(
         url=str(response.url),
         status=response.status_code,
-        content_type=response.headers.get("content-type", ""),
+        content_type=content_type,
         html=html,
-        markdown=markdown.strip(),
-        error=None if markdown else "empty-extraction",
+        markdown=markdown,
+        error=error,
+        body=body,
     )
 
 

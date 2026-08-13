@@ -52,16 +52,45 @@ def snapshot_has_extraction(
 def latest_snapshot(
     conn: psycopg.Connection[dict[str, Any]], source_id: str
 ) -> dict[str, Any] | None:
+    current = current_snapshot(conn, source_id)
+    if current is not None:
+        return current
     with conn.cursor() as cur:
         cur.execute(
             """
             select * from snapshots
-            where source_id = %s
+            where source_id = %s and is_valid
             order by fetched_at desc
             limit 1
             """,
             (source_id,),
         )
+        return cur.fetchone()
+
+
+def current_snapshot(
+    conn: psycopg.Connection[dict[str, Any]], source_id: str
+) -> dict[str, Any] | None:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            select snap.*
+            from policy_sources ps
+            join snapshots snap on snap.id = ps.current_snapshot_id
+            where ps.id = %s
+            """,
+            (source_id,),
+        )
+        return cur.fetchone()
+
+
+def snapshot_by_id(
+    conn: psycopg.Connection[dict[str, Any]], snapshot_id: str
+) -> dict[str, Any] | None:
+    if not snapshot_id:
+        return None
+    with conn.cursor() as cur:
+        cur.execute("select * from snapshots where id = %s", (snapshot_id,))
         return cur.fetchone()
 
 
@@ -82,13 +111,10 @@ def insert_snapshot(
             """
             insert into snapshots (
               source_id, http_status, content_type, raw_html, markdown,
-              doc_hash, section_hashes, fetch_error
+              doc_hash, section_hashes, fetch_error, normalized_sha256, is_valid
             )
-            values (%s, %s, %s, %s, %s, %s, %s, %s)
-            on conflict (source_id, doc_hash) do update
-              set fetched_at = now(),
-                  http_status = excluded.http_status,
-                  fetch_error = excluded.fetch_error
+            values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            on conflict (source_id, doc_hash, normalizer_version) do nothing
             returning *
             """,
             (
@@ -100,9 +126,22 @@ def insert_snapshot(
                 doc_hash,
                 Json(section_hashes),
                 error,
+                doc_hash,
+                error is None and bool(markdown),
             ),
         )
         row = cur.fetchone()
+        if row is None:
+            cur.execute(
+                """
+                select * from snapshots
+                where source_id = %s and doc_hash = %s
+                order by fetched_at asc
+                limit 1
+                """,
+                (source_id, doc_hash),
+            )
+            row = cur.fetchone()
     conn.commit()
     assert row is not None
     return row

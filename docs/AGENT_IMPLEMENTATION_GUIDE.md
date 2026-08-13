@@ -86,6 +86,7 @@ Database and fixtures:
 privacyradar migrate
 privacyradar migrate   # no-op when already at head
 privacyradar seed-fixtures
+privacyradar reconcile-observations  # idempotent observation backfill; prints counts
 ```
 
 `pytest` creates ephemeral PostgreSQL databases against local Postgres or `TEST_ADMIN_DATABASE_URL`. Redis tests require `TEST_REDIS_URL` (required in CI; skipped locally if Redis is down). Playwright global setup runs `migrate` and `seed-fixtures` using `DATABASE_URL`.

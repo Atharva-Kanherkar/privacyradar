@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import hashlib
+import unicodedata
+
+NORMALIZER_VERSION = "1.0.0"
+MIN_NORMALIZED_CHARS = 40
 
 
 def normalize_markdown(text: str) -> str:
-    lines = [line.rstrip() for line in text.replace("\r\n", "\n").split("\n")]
+    text = unicodedata.normalize("NFC", text.replace("\ufeff", ""))
+    lines = [line.rstrip() for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
     collapsed: list[str] = []
     blank = False
     for line in lines:
