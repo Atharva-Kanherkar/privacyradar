@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import psycopg
@@ -166,3 +167,17 @@ def test_migrate_upgrades_prototype_schema_preserving_rows(empty_database_url: s
         assert snapshot is not None
         assert snapshot[0] == "abc123"
     assert _ledger(empty_database_url)[0][0] == "0001"
+
+
+def test_concurrent_migrate_serializes_on_advisory_lock(empty_database_url: str) -> None:
+    def run(_index: int) -> list[str]:
+        return migrate(empty_database_url)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(run, range(2)))
+
+    applied = [item for batch in results for item in batch]
+    assert applied == ["0001"]
+    assert _ledger(empty_database_url) == [
+        ("0001", discover_migrations()[0].checksum)
+    ]

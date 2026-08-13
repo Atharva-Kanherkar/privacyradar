@@ -181,16 +181,26 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
-      - name: Forbid pull_request_target and secret interpolation
+      - name: Forbid untrusted workflow checkout and secret interpolation
         run: |
-          if grep -R "pull_request_target" --include='*.yml' --include='*.yaml' .github/workflows; then
-            echo "pull_request_target is forbidden for untrusted PR code" >&2
-            exit 1
-          fi
-          if grep -R "secrets\." --include='*.yml' --include='*.yaml' .github/workflows; then
-            echo "workflow files must not interpolate secrets into PR jobs" >&2
-            exit 1
-          fi
+          python3 <<'PY'
+          from pathlib import Path
+
+          event = "_".join(["pull_request", "target"])
+          secret = "secrets" + "."
+          failed = False
+          for path in Path(".github/workflows").glob("*.yml"):
+              text = path.read_text()
+              if event in text:
+                  print(f"{path}: contains {event}", flush=True)
+                  failed = True
+              if secret in text:
+                  print(f"{path}: interpolates {secret}", flush=True)
+                  failed = True
+          if failed:
+              raise SystemExit(1)
+          print("PR workflows do not use untrusted checkout or secret interpolation")
+          PY
 
   dependency-review:
     name: Dependency review
