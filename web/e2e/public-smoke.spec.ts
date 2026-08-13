@@ -26,20 +26,26 @@ test.describe("public smoke", () => {
 
     expect((await page.goto("/companies"))?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1, name: "Catalog" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Signal" })).toBeVisible();
-    await expect(page.getByText("timeout")).not.toBeVisible();
-    await expect(page.getByText("healthy").or(page.getByText("pending"))).toBeVisible();
+    const signalRow = page.getByRole("row", { name: /Signal/ });
+    await expect(signalRow).toBeVisible();
+    await expect(signalRow.getByText(/^(healthy|pending|check delayed)$/)).toBeVisible();
+    await expect(signalRow.getByText(/timeout|dns|Connection refused/i)).toHaveCount(0);
 
     const companies = await request.get("/api/companies?q=signal");
     expect(companies.status()).toBe(200);
     const list = (await companies.json()) as Array<{
       slug: string;
       source_health: string;
-      last_error?: string;
+      last_error?: unknown;
     }>;
-    expect(list.some((row) => row.slug === "signal")).toBe(true);
-    expect(JSON.stringify(list)).not.toMatch(/last_error/);
+    const signal = list.find((row) => row.slug === "signal");
+    expect(signal).toBeDefined();
+    expect(["pending", "healthy", "degraded", "quarantined"]).toContain(
+      signal?.source_health,
+    );
+    expect(signal && "last_error" in signal).toBe(false);
     expect(JSON.stringify(list)).not.toMatch(/postgresql:\/\//);
+    expect(JSON.stringify(list)).not.toMatch(/Traceback|Error:/);
 
     const detail = await request.get("/api/companies/signal");
     expect(detail.status()).toBe(200);

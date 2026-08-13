@@ -21,13 +21,18 @@ def test_normalize_markdown_nfc_and_bom() -> None:
     assert doc_hash(bom) == doc_hash("# Privacy\nWe collect email.")
 
 
-def test_doc_hash_stable_for_randomized_policy_like_strings() -> None:
+def test_doc_hash_stable_for_same_normalizer_version() -> None:
+    from privacyradar.normalize import normalize_document
+
     samples = [
         f"# Section {i}\nWe collect field-{i} to operate the service.\n" for i in range(20)
     ]
     for text in samples:
-        assert doc_hash(text) == doc_hash(text)
-        assert doc_hash(text) == doc_hash(text.replace("\n", "\r\n"))
+        first = normalize_document(markdown=text, content_type="text/plain")
+        second = normalize_document(markdown=text, content_type="text/plain")
+        assert not first.failed
+        assert first.normalized_sha256 == second.normalized_sha256
+        assert first.normalized_sha256 == doc_hash(text)
 
 
 def test_section_hashes_split_headings_and_uppercase_labels() -> None:

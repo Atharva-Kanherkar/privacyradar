@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 
 import psycopg
 import pytest
+from psycopg.errors import UniqueViolation
 from psycopg.rows import dict_row
 
 from privacyradar import pipeline
@@ -124,9 +125,8 @@ def test_content_change_creates_document_change(db_url: str) -> None:
     assert result.outcome == "new_version"
     assert len(snapshots) == 2
     assert len(changes) == 1
-    assert "Sharing" in changes[0]["added_sections"] or "Sharing" in (
-        changes[0]["modified_sections"] + changes[0]["added_sections"]
-    )
+    assert "Sharing" in changes[0]["added_sections"]
+    assert "Privacy" in changes[0]["modified_sections"]
     assert pointers is not None
     assert str(pointers["current_snapshot_id"]) == str(snapshots[1]["id"])
 
@@ -164,7 +164,8 @@ def test_recurrence_a_b_a_reuses_snapshot_a(db_url: str) -> None:
         ).fetchone()
         last_change = conn.execute(
             """
-            select from_snapshot_id, to_snapshot_id
+            select from_snapshot_id, to_snapshot_id, added_sections,
+                   removed_sections, modified_sections
             from document_changes
             order by created_at desc
             limit 1
@@ -184,6 +185,8 @@ def test_recurrence_a_b_a_reuses_snapshot_a(db_url: str) -> None:
     assert last_change is not None
     assert str(last_change["from_snapshot_id"]) == str(snapshot_b["id"])
     assert str(last_change["to_snapshot_id"]) == str(snapshot_a["id"])
+    assert "Sharing" in last_change["removed_sections"]
+    assert "Privacy" in last_change["modified_sections"]
     assert third.outcome == "new_version"
 
 
@@ -203,7 +206,7 @@ def test_failed_fetch_does_not_replace_current_snapshot(db_url: str) -> None:
         after = conn.execute(
             """
             select current_snapshot_id, health_status, last_failure_code,
-                   consecutive_failures
+                   consecutive_failures, last_success_at
             from policy_sources where id = %s
             """,
             (source["source_id"],),
@@ -220,6 +223,7 @@ def test_failed_fetch_does_not_replace_current_snapshot(db_url: str) -> None:
     assert after["health_status"] == "degraded"
     assert after["last_failure_code"] == "timeout"
     assert after["consecutive_failures"] == 1
+    assert after["last_success_at"] is not None
     assert snapshots is not None and snapshots["n"] == 1
     assert observations is not None and observations["n"] == 1
     assert [row["status"] for row in attempts] == ["succeeded", "failed"]
@@ -271,7 +275,7 @@ def test_unique_source_hash_normalizer_rejects_duplicates(db_url: str) -> None:
         conn.commit()
         snap = conn.execute("select id, doc_hash from snapshots").fetchone()
         assert snap is not None
-        with pytest.raises(psycopg.Error):
+        with pytest.raises(UniqueViolation):
             conn.execute(
                 """
                 insert into snapshots (
@@ -295,7 +299,15 @@ def test_append_only_triggers(db_url: str) -> None:
             conn.commit()
         conn.rollback()
         with pytest.raises(psycopg.Error):
+            conn.execute("update observations set region = %s", ("mutated",))
+            conn.commit()
+        conn.rollback()
+        with pytest.raises(psycopg.Error):
             conn.execute("delete from observations")
+            conn.commit()
+        conn.rollback()
+        with pytest.raises(psycopg.Error):
+            conn.execute("delete from snapshots")
             conn.commit()
         conn.rollback()
 
@@ -358,7 +370,7 @@ def test_concurrent_same_hash_one_snapshot(db_url: str, monkeypatch: pytest.Monk
         observations = conn.execute("select count(*) as n from observations").fetchone()
     assert snaps is not None and snaps["n"] == 1
     assert attempts is not None and attempts["n"] == 2
-    assert observations is not None and observations["n"] in {1, 2}
+    assert observations is not None and observations["n"] == 1
 
 
 def test_observe_does_not_call_model_to_compare_hashes(
@@ -381,3 +393,18 @@ def test_observe_does_not_call_model_to_compare_hashes(
     )
     assert analyzer.judge_calls == 0
     assert analyzer.extract_calls == 0
+
+
+def test_five_failures_quarantine_source(db_url: str) -> None:
+    source = _seed(db_url, "quarantine-co")
+    with _connect(db_url) as conn:
+        for _ in range(5):
+            observe_source(conn, source, _fetch(str(source["url"]), "", error="timeout"))
+        conn.commit()
+        row = conn.execute(
+            "select health_status, consecutive_failures from policy_sources where id = %s",
+            (source["source_id"],),
+        ).fetchone()
+    assert row is not None
+    assert row["consecutive_failures"] == 5
+    assert row["health_status"] == "quarantined"

@@ -66,6 +66,9 @@ def test_default_migrations_include_initial_and_observations() -> None:
     assert [item.version for item in found] == ["0001", "0002"]
     assert found[0].name == "initial"
     assert found[1].name == "immutable_observations"
+    assert found[0].checksum == (
+        "5957a7874aaec1741621bfae3fff13f08fc3ca0c9222bb4592e56eac61cb3c8e"
+    )
 
 
 def test_schema_sql_is_current_head_reference() -> None:
