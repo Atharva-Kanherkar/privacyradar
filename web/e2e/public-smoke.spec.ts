@@ -16,7 +16,7 @@ test.describe("public smoke", () => {
     expect(JSON.stringify(payload)).not.toMatch(/postgresql:\/\//);
     expect(JSON.stringify(payload)).not.toMatch(/OPENAI/i);
 
-    await page.goto("/");
+    expect((await page.goto("/"))?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
       "What they take. What just changed.",
     );
@@ -24,15 +24,15 @@ test.describe("public smoke", () => {
     await expect(page.getByRole("link", { name: "Companies" })).toBeVisible();
     await expect(page.getByRole("link", { name: "About" })).toBeVisible();
 
-    await page.goto("/companies");
+    expect((await page.goto("/companies"))?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1, name: "Catalog" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Signal" })).toBeVisible();
 
-    await page.goto("/companies/signal");
+    expect((await page.goto("/companies/signal"))?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1, name: "Signal" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Current privacy policy" })).toBeVisible();
 
-    await page.goto("/about");
+    expect((await page.goto("/about"))?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1, name: "About" })).toBeVisible();
 
     const feed = await request.get("/feed.xml");
@@ -45,7 +45,7 @@ test.describe("public smoke", () => {
 
   test("home heading and nav remain visible at 320px", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 });
-    await page.goto("/");
+    expect((await page.goto("/"))?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.getByRole("link", { name: "Companies" })).toBeVisible();
     await expect(page.getByRole("link", { name: "About" })).toBeVisible();
