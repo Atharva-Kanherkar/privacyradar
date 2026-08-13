@@ -169,6 +169,14 @@ def test_migrate_upgrades_prototype_schema_preserving_rows(empty_database_url: s
     assert _ledger(empty_database_url)[0][0] == "0001"
 
 
+def test_migrate_rejects_ledger_version_missing_from_directory(
+    empty_database_url: str, tmp_path: Path
+) -> None:
+    migrate(empty_database_url)
+    with pytest.raises(MigrationError, match="missing from migrations directory"):
+        migrate(empty_database_url, migrations_dir=tmp_path)
+
+
 def test_concurrent_migrate_serializes_on_advisory_lock(empty_database_url: str) -> None:
     def run(_index: int) -> list[str]:
         return migrate(empty_database_url)

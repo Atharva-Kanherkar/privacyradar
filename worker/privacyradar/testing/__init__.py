@@ -1,4 +1,3 @@
-from privacyradar.testing.fakes import FakeAnalyzer, FakeFetcher
 from privacyradar.testing.fixtures import (
     FROZEN_NOW,
     make_claim,
@@ -13,8 +12,6 @@ from privacyradar.testing.fixtures import (
 
 __all__ = [
     "FROZEN_NOW",
-    "FakeAnalyzer",
-    "FakeFetcher",
     "make_claim",
     "make_company",
     "make_follow",

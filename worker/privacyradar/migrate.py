@@ -105,13 +105,20 @@ def migrate(
 ) -> list[str]:
     """Apply pending migrations. Returns versions applied in this invocation."""
     migrations = discover_migrations(migrations_dir)
+    discovered = {item.version: item for item in migrations}
     applied_now: list[str] = []
     with _connect(database_url) as conn:
+        conn.autocommit = True
         conn.execute("select pg_advisory_lock(%s)", (LOCK_KEY,))
         try:
             _ensure_ledger(conn)
-            conn.commit()
             recorded = _applied_rows(conn)
+            missing_files = sorted(set(recorded) - set(discovered))
+            if missing_files:
+                raise MigrationError(
+                    "ledger has versions missing from migrations directory: "
+                    + ", ".join(missing_files)
+                )
             for migration in migrations:
                 existing = recorded.get(migration.version)
                 if existing is not None:
@@ -123,26 +130,34 @@ def migrate(
                         )
                     continue
                 started = time.perf_counter()
+                conn.autocommit = False
                 try:
-                    with conn.transaction():
-                        conn.execute(migration.sql)
-                        elapsed_ms = int((time.perf_counter() - started) * 1000)
-                        conn.execute(
-                            """
-                            insert into schema_migrations (version, name, checksum, execution_ms)
-                            values (%s, %s, %s, %s)
-                            """,
-                            (
-                                migration.version,
-                                migration.name,
-                                migration.checksum,
-                                elapsed_ms,
-                            ),
-                        )
+                    conn.execute(migration.sql)
+                    elapsed_ms = int((time.perf_counter() - started) * 1000)
+                    conn.execute(
+                        """
+                        insert into schema_migrations (version, name, checksum, execution_ms)
+                        values (%s, %s, %s, %s)
+                        """,
+                        (
+                            migration.version,
+                            migration.name,
+                            migration.checksum,
+                            elapsed_ms,
+                        ),
+                    )
+                    conn.commit()
                 except Exception as exc:
+                    conn.rollback()
                     raise MigrationError(
                         f"migration {migration.version}_{migration.name} failed: {exc}"
                     ) from exc
+                finally:
+                    conn.autocommit = True
+                recorded[migration.version] = {
+                    "version": migration.version,
+                    "checksum": migration.checksum,
+                }
                 applied_now.append(migration.version)
                 logger.info(
                     "applied migration %s_%s in %sms",
@@ -150,8 +165,7 @@ def migrate(
                     migration.name,
                     int((time.perf_counter() - started) * 1000),
                 )
-            conn.commit()
         finally:
+            conn.autocommit = True
             conn.execute("select pg_advisory_unlock(%s)", (LOCK_KEY,))
-            conn.commit()
     return applied_now
