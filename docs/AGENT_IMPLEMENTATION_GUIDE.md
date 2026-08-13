@@ -76,9 +76,28 @@ npm ci
 npm run lint
 npx tsc --noEmit
 npm run build
+npx playwright install chromium
+npm run test:e2e
 ```
 
-For database work, start a disposable PostgreSQL 16 instance, apply all migrations from an empty database and from the last released schema, then run integration tests. For queue work, test against Redis 7.
+Database and fixtures:
+
+```bash
+privacyradar migrate
+privacyradar migrate   # no-op when already at head
+privacyradar seed-fixtures
+```
+
+`pytest` creates ephemeral PostgreSQL databases against local Postgres or `TEST_ADMIN_DATABASE_URL`. Redis tests require `TEST_REDIS_URL` (required in CI; skipped locally if Redis is down). Playwright global setup runs `migrate` and `seed-fixtures` using `DATABASE_URL`.
+
+Troubleshooting:
+
+- `checksum mismatch for migration` — an applied SQL file changed. Restore the original file or add a new numbered migration; never edit applied SQL.
+- Browser smoke 503/unconfigured — `DATABASE_URL` must be the same for `privacyradar` and Next.js.
+- Integration tests skip Postgres — export `TEST_ADMIN_DATABASE_URL` to a superuser URL that can `CREATE DATABASE`.
+- Do not use `pull_request_target` or interpolate deployment secrets into PR workflows. See [`BRANCH_PROTECTION.md`](BRANCH_PROTECTION.md).
+
+For database work, start a disposable PostgreSQL 16 instance, apply all migrations from an empty database (`privacyradar migrate`) and from the last released/prototype schema, then run integration tests. For queue work, test against Redis 7.
 
 ### 5. Produce an auditable handoff
 

@@ -37,8 +37,12 @@ this repo talks to postgres. if you already have postgres on `:5432`:
 
 ```bash
 createdb privacyradar
-psql -d privacyradar -f db/schema.sql
-cp .env.example .env
+cd worker
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -e '.[dev]'
+privacyradar migrate
+cp ../.env.example ../.env
 # set DATABASE_URL=postgresql://$USER@localhost:5432/privacyradar
 ```
 
@@ -88,7 +92,9 @@ arq privacyradar.jobs.WorkerSettings
 
 ```
 web/          next.js bulletin (feed, catalog, company pages, rss)
-worker/       crawler + hasher + openai extractor
-db/schema.sql postgres schema
+worker/       crawler + hasher + openai extractor + migrations
+db/migrations numbered forward-only SQL
+db/schema.sql current-head reference (docker-compose bootstrap)
+docs/         product plan, agent guide, test plan, branch protection
 docker-compose.yml   postgres + redis
 ```
