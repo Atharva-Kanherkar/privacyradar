@@ -21,7 +21,12 @@ REQUIRED_TABLES = {
     "source_attempts",
     "observations",
     "document_changes",
+    "fetch_jobs",
+    "source_operator_actions",
 }
+
+INITIAL_CHECKSUM = "5957a7874aaec1741621bfae3fff13f08fc3ca0c9222bb4592e56eac61cb3c8e"
+HEAD_VERSIONS = ["0001", "0002", "0003"]
 
 
 def _tables(url: str) -> set[str]:
@@ -46,10 +51,11 @@ def _ledger(url: str) -> list[tuple[str, str]]:
 
 def test_migrate_fresh_database_to_head(empty_database_url: str) -> None:
     applied = migrate(empty_database_url)
-    assert applied == ["0001", "0002"]
+    assert applied == HEAD_VERSIONS
     assert _tables(empty_database_url) >= REQUIRED_TABLES
     ledger = _ledger(empty_database_url)
-    assert [row[0] for row in ledger] == ["0001", "0002"]
+    assert [row[0] for row in ledger] == HEAD_VERSIONS
+    assert ledger[0][1] == INITIAL_CHECKSUM
 
 
 def test_migrate_is_idempotent(empty_database_url: str) -> None:
@@ -57,7 +63,7 @@ def test_migrate_is_idempotent(empty_database_url: str) -> None:
     tables_after_first = _tables(empty_database_url)
     ledger_after_first = _ledger(empty_database_url)
     second = migrate(empty_database_url)
-    assert first == ["0001", "0002"]
+    assert first == HEAD_VERSIONS
     assert second == []
     assert _tables(empty_database_url) == tables_after_first
     assert _ledger(empty_database_url) == ledger_after_first
@@ -154,7 +160,7 @@ def test_migrate_upgrades_prototype_schema_preserving_rows(empty_database_url: s
         )
 
     applied = migrate(empty_database_url)
-    assert applied == ["0001", "0002"]
+    assert applied == HEAD_VERSIONS
     with psycopg.connect(empty_database_url) as conn:
         company = conn.execute(
             "select slug, name from companies where id = %s",
@@ -181,7 +187,7 @@ def test_migrate_upgrades_prototype_schema_preserving_rows(empty_database_url: s
         assert observation[0] == 1
         assert pointer is not None
         assert str(pointer[0]) == "33333333-3333-3333-3333-333333333333"
-    assert [row[0] for row in _ledger(empty_database_url)] == ["0001", "0002"]
+    assert [row[0] for row in _ledger(empty_database_url)] == HEAD_VERSIONS
 
 
 def test_migrate_0001_database_backfills_valid_and_invalid_snapshots(
@@ -277,6 +283,103 @@ def test_migrate_0001_database_backfills_valid_and_invalid_snapshots(
     assert "failed" in statuses
     failed_codes = {row["error_code"] for row in attempts if row["status"] == "failed"}
     assert failed_codes == {"timeout"}
+    with psycopg.connect(empty_database_url, row_factory=dict_row) as conn:
+        due = conn.execute(
+            "select due_at, current_snapshot_id from policy_sources"
+        ).fetchone()
+        jobs = conn.execute("select count(*) as n from fetch_jobs").fetchone()
+    assert due is not None
+    assert due["due_at"] is not None
+    assert str(due["current_snapshot_id"]) == "cccccccc-cccc-cccc-cccc-cccccccccccc"
+    assert jobs is not None and jobs["n"] == 0
+
+
+def test_migrate_0002_database_upgrades_to_0003(
+    empty_database_url: str, tmp_path: Path
+) -> None:
+    migrations = Path(__file__).resolve().parents[2] / "db" / "migrations"
+    for name in ("0001_initial.sql", "0002_immutable_observations.sql"):
+        (tmp_path / name).write_bytes((migrations / name).read_bytes())
+
+    first = migrate(empty_database_url, migrations_dir=tmp_path)
+    assert first == ["0001", "0002"]
+
+    with psycopg.connect(
+        empty_database_url, cursor_factory=psycopg.ClientCursor, autocommit=True
+    ) as conn:
+        conn.execute(
+            """
+            insert into companies (id, slug, name, website)
+            values (
+              'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+              'from0002',
+              'From 0002 Co',
+              'https://from0002.example.test'
+            )
+            """
+        )
+        conn.execute(
+            """
+            insert into policy_sources (id, company_id, url, health_status)
+            values (
+              'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+              'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+              'https://from0002.example.test/privacy',
+              'healthy'
+            )
+            """
+        )
+        conn.execute(
+            """
+            insert into snapshots (
+              id, source_id, http_status, markdown, doc_hash, is_valid
+            )
+            values (
+              'cccccccc-cccc-cccc-cccc-cccccccccccc',
+              'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+              200,
+              E'# Privacy\\nWe collect your email address to create an account.',
+              'from0002hash',
+              true
+            )
+            """
+        )
+        conn.execute(
+            """
+            update policy_sources
+            set current_snapshot_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc'
+            where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+            """
+        )
+        observation_count = conn.execute("select count(*) from observations").fetchone()
+        assert observation_count is not None
+        before_observations = observation_count[0]
+
+    second = migrate(empty_database_url)
+    assert second == ["0003"]
+    with psycopg.connect(empty_database_url, row_factory=dict_row) as conn:
+        source = conn.execute(
+            """
+            select current_snapshot_id, due_at, retry_count, quarantine_reason
+            from policy_sources
+            where id = %s
+            """,
+            ("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",),
+        ).fetchone()
+        after = conn.execute("select count(*) as n from observations").fetchone()
+        jobs = conn.execute("select count(*) as n from fetch_jobs").fetchone()
+        actions = conn.execute(
+            "select count(*) as n from source_operator_actions"
+        ).fetchone()
+    assert source is not None
+    assert str(source["current_snapshot_id"]) == "cccccccc-cccc-cccc-cccc-cccccccccccc"
+    assert source["due_at"] is not None
+    assert source["retry_count"] == 0
+    assert source["quarantine_reason"] is None
+    assert after is not None and after["n"] == before_observations
+    assert jobs is not None and jobs["n"] == 0
+    assert actions is not None and actions["n"] == 0
+    assert [row[0] for row in _ledger(empty_database_url)] == HEAD_VERSIONS
 
 
 def test_migrate_rejects_ledger_version_missing_from_directory(
@@ -295,5 +398,5 @@ def test_concurrent_migrate_serializes_on_advisory_lock(empty_database_url: str)
         results = list(pool.map(run, range(2)))
 
     applied = [item for batch in results for item in batch]
-    assert applied == ["0001", "0002"]
-    assert [row[0] for row in _ledger(empty_database_url)] == ["0001", "0002"]
+    assert sorted(applied) == HEAD_VERSIONS
+    assert [row[0] for row in _ledger(empty_database_url)] == HEAD_VERSIONS
