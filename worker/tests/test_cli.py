@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from privacyradar.cli import main
+from privacyradar.settings import settings
 
 
 def test_cli_migrate_help() -> None:
@@ -33,3 +34,38 @@ def test_module_entrypoint_help() -> None:
     )
     assert completed.returncode == 0
     assert "migrate" in completed.stdout
+
+
+def test_cli_migrate_and_seed_fixtures(
+    empty_database_url: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(settings, "database_url", empty_database_url)
+    assert main(["migrate"]) == 0
+    assert "applied 0001" in capsys.readouterr().out
+    assert main(["migrate"]) == 0
+    assert "already at head" in capsys.readouterr().out
+    assert main(["seed-fixtures"]) == 0
+    first = capsys.readouterr().out
+    assert "seeded 1 fixture companies" in first
+    assert main(["seed-fixtures"]) == 0
+    assert "seeded 0 fixture companies" in capsys.readouterr().out
+
+
+def test_cli_migrate_unavailable_database_exits_nonzero(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(settings, "database_url", "postgresql://127.0.0.1:1/none")
+    assert main(["migrate"]) == 1
+    err = capsys.readouterr().err
+    assert "migrate failed" in err
+    assert "postgresql://127.0.0.1:1/none" not in err
+
+
+def test_cli_seed_fixtures_unavailable_database_exits_nonzero(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(settings, "database_url", "postgresql://127.0.0.1:1/none")
+    assert main(["seed-fixtures"]) == 1
+    err = capsys.readouterr().err
+    assert "seed-fixtures failed" in err
+    assert "postgresql://127.0.0.1:1/none" not in err

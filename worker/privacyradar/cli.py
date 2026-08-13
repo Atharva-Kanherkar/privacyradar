@@ -29,7 +29,11 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
     if args.cmd == "migrate":
-        applied = migrate(settings.database_url)
+        try:
+            applied = migrate(settings.database_url)
+        except Exception as exc:
+            print(f"migrate failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
         if applied:
             print("applied " + ", ".join(applied))
         else:
@@ -40,9 +44,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"seeded {n} companies")
         return 0
     if args.cmd == "seed-fixtures":
-        with connect() as conn:
-            n = seed_public_fixtures(conn)
-            conn.commit()
+        try:
+            with connect() as conn:
+                n = seed_public_fixtures(conn)
+                conn.commit()
+        except Exception as exc:
+            print(f"seed-fixtures failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
         print(f"seeded {n} fixture companies")
         return 0
     if args.cmd == "crawl":
