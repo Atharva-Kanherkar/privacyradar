@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import yaml
-from psycopg.rows import dict_row
 
 from privacyradar.db import connect
 from privacyradar.settings import settings
 
 
-def load_catalog(path: Path | None = None) -> list[dict]:
+def load_catalog(path: Path | None = None) -> list[dict[str, Any]]:
     catalog_path = path or settings.catalog_path
     data = yaml.safe_load(catalog_path.read_text())
     return list(data["companies"])
@@ -18,7 +18,6 @@ def load_catalog(path: Path | None = None) -> list[dict]:
 def seed_catalog() -> int:
     companies = load_catalog()
     with connect() as conn:
-        conn.row_factory = dict_row
         with conn.cursor() as cur:
             for row in companies:
                 cur.execute(
@@ -33,7 +32,9 @@ def seed_catalog() -> int:
                     """,
                     (row["slug"], row["name"], row["website"], row["category"]),
                 )
-                company_id = cur.fetchone()["id"]
+                company = cur.fetchone()
+                assert company is not None
+                company_id = company["id"]
                 cur.execute(
                     """
                     insert into policy_sources (company_id, kind, url, region)

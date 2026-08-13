@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from privacyradar import db
 from privacyradar.analyze import extract_practices, judge_materiality
 from privacyradar.crawl import fetch_url, polite_pause
@@ -7,7 +9,7 @@ from privacyradar.hashing import changed_sections, doc_hash, section_hashes
 from privacyradar.settings import settings
 
 
-def process_source(source: dict) -> str:
+def process_source(source: dict[str, Any]) -> str:
     """Fetch one policy URL. LLM only if the content hash changed."""
     fetched = fetch_url(source["url"])
     markdown = fetched.markdown
@@ -17,19 +19,22 @@ def process_source(source: dict) -> str:
     with db.connect() as conn:
         previous = db.latest_snapshot(conn, source["source_id"])
         if previous and previous["doc_hash"] == digest and not fetched.error:
-            if settings.openai_api_key and previous.get("markdown"):
-                if not db.snapshot_has_extraction(conn, previous["id"]):
-                    doc, model = extract_practices(source["name"], previous["markdown"])
-                    db.insert_extraction(
-                        conn,
-                        snapshot_id=previous["id"],
-                        model=model,
-                        practices=doc.model_dump(),
-                    )
-                    return (
-                        f"{source['slug']}: unchanged hash, backfilled "
-                        f"{len(doc.practices)} practices"
-                    )
+            if (
+                settings.openai_api_key
+                and previous.get("markdown")
+                and not db.snapshot_has_extraction(conn, previous["id"])
+            ):
+                doc, model = extract_practices(source["name"], previous["markdown"])
+                db.insert_extraction(
+                    conn,
+                    snapshot_id=previous["id"],
+                    model=model,
+                    practices=doc.model_dump(),
+                )
+                return (
+                    f"{source['slug']}: unchanged hash, backfilled "
+                    f"{len(doc.practices)} practices"
+                )
             return f"{source['slug']}: unchanged ({digest[:10]})"
 
         snapshot = db.insert_snapshot(
@@ -63,6 +68,7 @@ def process_source(source: dict) -> str:
         if not settings.openai_api_key:
             return f"{source['slug']}: hash changed, skipped LLM (no key)"
 
+        assert previous is not None
         changed = changed_sections(previous.get("section_hashes") or {}, sections)
         judgement, _model = judge_materiality(
             source["name"],
@@ -91,7 +97,8 @@ def process_source(source: dict) -> str:
             data_types_removed=list(judgement.data_types_removed),
             quotes=[q.model_dump() for q in judgement.quotes],
         )
-        return f"{source['slug']}: {judgement.materiality} - {judgement.headline or judgement.reason}"
+        detail = judgement.headline or judgement.reason
+        return f"{source['slug']}: {judgement.materiality} - {detail}"
 
 
 def crawl_all() -> list[str]:
