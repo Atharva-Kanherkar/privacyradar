@@ -36,8 +36,11 @@ where = ["."]
 include = ["privacyradar*"]
 
 [tool.pytest.ini_options]
-addopts = "--strict-config --strict-markers --cov=privacyradar --cov-report=term-missing --cov-fail-under=45"
+addopts = "--strict-config --strict-markers --cov=privacyradar --cov-report=term-missing --cov-fail-under=54"
 testpaths = ["tests"]
+markers = [
+  "integration: tests that require PostgreSQL or Redis",
+]
 
 [tool.ruff]
 target-version = "py312"

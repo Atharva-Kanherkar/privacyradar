@@ -4,13 +4,16 @@ import argparse
 import sys
 
 from privacyradar.catalog import seed_catalog
+from privacyradar.migrate import migrate
 from privacyradar.pipeline import crawl_all, extract_missing
+from privacyradar.settings import settings
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="privacyradar")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
+    sub.add_parser("migrate", help="Apply numbered forward-only SQL migrations")
     sub.add_parser("seed", help="Load worker/data/catalog.yaml into Postgres")
     sub.add_parser("crawl", help="Fetch every enabled policy URL once")
     sub.add_parser(
@@ -19,6 +22,13 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     args = parser.parse_args(argv)
+    if args.cmd == "migrate":
+        applied = migrate(settings.database_url)
+        if applied:
+            print("applied " + ", ".join(applied))
+        else:
+            print("already at head")
+        return 0
     if args.cmd == "seed":
         n = seed_catalog()
         print(f"seeded {n} companies")
