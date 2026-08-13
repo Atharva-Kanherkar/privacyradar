@@ -4,6 +4,15 @@ public bulletin for what data companies take, and what just changed in their pri
 
 the site is next.js. the product is a python worker that crawls, hashes, and only then calls openai.
 
+## product roadmap
+
+- [`docs/PRODUCT_PLAN.md`](docs/PRODUCT_PLAN.md) is the reviewed product, architecture, and milestone source of truth.
+- [`docs/AGENT_IMPLEMENTATION_GUIDE.md`](docs/AGENT_IMPLEMENTATION_GUIDE.md) tells coding agents how to select, implement, test, and hand off roadmap issues.
+- [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md) defines the required unit, integration, browser, evaluation, load, and operational coverage.
+- [`docs/TODOS.md`](docs/TODOS.md) records deliberately deferred work and its prerequisites.
+
+Do not implement later milestones merely because they are documented. Every milestone has an entrance and exit gate; GitHub subissues carry the executable scope.
+
 ## how it works
 
 1. hand-picked catalog of privacy-policy urls (start with 10, grow to 100-200).

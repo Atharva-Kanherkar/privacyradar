@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
 from arq.connections import RedisSettings
 from arq.cron import cron
@@ -11,7 +12,7 @@ from privacyradar.pipeline import crawl_all
 from privacyradar.settings import settings
 
 
-async def crawl_all_job(ctx) -> list[str]:
+async def crawl_all_job(ctx: dict[str, Any]) -> list[str]:
     return await asyncio.to_thread(crawl_all)
 
 

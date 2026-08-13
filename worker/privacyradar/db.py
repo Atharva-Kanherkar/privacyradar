@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any, Iterator
+from typing import Any
 
 import psycopg
 from psycopg.rows import dict_row
@@ -11,12 +12,12 @@ from privacyradar.settings import settings
 
 
 @contextmanager
-def connect() -> Iterator[psycopg.Connection]:
+def connect() -> Iterator[psycopg.Connection[dict[str, Any]]]:
     with psycopg.connect(settings.database_url, row_factory=dict_row) as conn:
         yield conn
 
 
-def fetch_enabled_sources(conn: psycopg.Connection) -> list[dict[str, Any]]:
+def fetch_enabled_sources(conn: psycopg.Connection[dict[str, Any]]) -> list[dict[str, Any]]:
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -37,7 +38,9 @@ def fetch_enabled_sources(conn: psycopg.Connection) -> list[dict[str, Any]]:
         return list(cur.fetchall())
 
 
-def snapshot_has_extraction(conn: psycopg.Connection, snapshot_id: str) -> bool:
+def snapshot_has_extraction(
+    conn: psycopg.Connection[dict[str, Any]], snapshot_id: str
+) -> bool:
     with conn.cursor() as cur:
         cur.execute(
             "select 1 from extractions where snapshot_id = %s limit 1",
@@ -46,7 +49,9 @@ def snapshot_has_extraction(conn: psycopg.Connection, snapshot_id: str) -> bool:
         return cur.fetchone() is not None
 
 
-def latest_snapshot(conn: psycopg.Connection, source_id: str) -> dict[str, Any] | None:
+def latest_snapshot(
+    conn: psycopg.Connection[dict[str, Any]], source_id: str
+) -> dict[str, Any] | None:
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -61,7 +66,7 @@ def latest_snapshot(conn: psycopg.Connection, source_id: str) -> dict[str, Any] 
 
 
 def insert_snapshot(
-    conn: psycopg.Connection,
+    conn: psycopg.Connection[dict[str, Any]],
     *,
     source_id: str,
     status: int | None,
@@ -104,7 +109,7 @@ def insert_snapshot(
 
 
 def insert_extraction(
-    conn: psycopg.Connection,
+    conn: psycopg.Connection[dict[str, Any]],
     *,
     snapshot_id: str,
     model: str,
@@ -122,7 +127,7 @@ def insert_extraction(
 
 
 def insert_change_event(
-    conn: psycopg.Connection,
+    conn: psycopg.Connection[dict[str, Any]],
     *,
     company_id: str,
     source_id: str,
