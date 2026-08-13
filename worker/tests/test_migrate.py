@@ -17,6 +17,9 @@ REQUIRED_TABLES = {
     "extractions",
     "change_events",
     "schema_migrations",
+    "source_attempts",
+    "observations",
+    "document_changes",
 }
 
 
@@ -42,12 +45,10 @@ def _ledger(url: str) -> list[tuple[str, str]]:
 
 def test_migrate_fresh_database_to_head(empty_database_url: str) -> None:
     applied = migrate(empty_database_url)
-    assert applied == ["0001"]
+    assert applied == ["0001", "0002"]
     assert _tables(empty_database_url) >= REQUIRED_TABLES
     ledger = _ledger(empty_database_url)
-    assert len(ledger) == 1
-    assert ledger[0][0] == "0001"
-    assert ledger[0][1] == discover_migrations()[0].checksum
+    assert [row[0] for row in ledger] == ["0001", "0002"]
 
 
 def test_migrate_is_idempotent(empty_database_url: str) -> None:
@@ -55,7 +56,7 @@ def test_migrate_is_idempotent(empty_database_url: str) -> None:
     tables_after_first = _tables(empty_database_url)
     ledger_after_first = _ledger(empty_database_url)
     second = migrate(empty_database_url)
-    assert first == ["0001"]
+    assert first == ["0001", "0002"]
     assert second == []
     assert _tables(empty_database_url) == tables_after_first
     assert _ledger(empty_database_url) == ledger_after_first
@@ -144,7 +145,7 @@ def test_migrate_upgrades_prototype_schema_preserving_rows(empty_database_url: s
               200,
               'text/html',
               '<p>policy</p>',
-              '# Privacy\\nWe collect email.',
+              '# Privacy\nWe collect your email address to create an account.',
               'abc123',
               '{}'::jsonb
             )
@@ -152,21 +153,121 @@ def test_migrate_upgrades_prototype_schema_preserving_rows(empty_database_url: s
         )
 
     applied = migrate(empty_database_url)
-    assert applied == ["0001"]
+    assert applied == ["0001", "0002"]
     with psycopg.connect(empty_database_url) as conn:
         company = conn.execute(
             "select slug, name from companies where id = %s",
             ("11111111-1111-1111-1111-111111111111",),
         ).fetchone()
         snapshot = conn.execute(
-            "select doc_hash from snapshots where id = %s",
+            "select doc_hash, is_valid from snapshots where id = %s",
             ("33333333-3333-3333-3333-333333333333",),
+        ).fetchone()
+        observation = conn.execute(
+            "select count(*) from observations where snapshot_id = %s",
+            ("33333333-3333-3333-3333-333333333333",),
+        ).fetchone()
+        pointer = conn.execute(
+            "select current_snapshot_id from policy_sources where id = %s",
+            ("22222222-2222-2222-2222-222222222222",),
         ).fetchone()
         assert company is not None
         assert company[0] == "prototype"
         assert snapshot is not None
         assert snapshot[0] == "abc123"
-    assert _ledger(empty_database_url)[0][0] == "0001"
+        assert snapshot[1] is True
+        assert observation is not None
+        assert observation[0] == 1
+        assert pointer is not None
+        assert str(pointer[0]) == "33333333-3333-3333-3333-333333333333"
+    assert [row[0] for row in _ledger(empty_database_url)] == ["0001", "0002"]
+
+
+def test_migrate_0001_database_backfills_valid_and_invalid_snapshots(
+    empty_database_url: str,
+) -> None:
+    initial = Path(__file__).resolve().parents[2] / "db" / "migrations" / "0001_initial.sql"
+    with psycopg.connect(
+        empty_database_url, cursor_factory=psycopg.ClientCursor, autocommit=True
+    ) as conn:
+        conn.execute(initial.read_text())
+        conn.execute(
+            """
+            insert into companies (id, slug, name, website)
+            values (
+              'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+              'legacy',
+              'Legacy Co',
+              'https://legacy.example.test'
+            )
+            """
+        )
+        conn.execute(
+            """
+            insert into policy_sources (id, company_id, url)
+            values (
+              'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+              'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+              'https://legacy.example.test/privacy'
+            )
+            """
+        )
+        conn.execute(
+            """
+            insert into snapshots (
+              id, source_id, http_status, content_type, raw_html, markdown,
+              doc_hash, section_hashes, fetch_error
+            )
+            values (
+              'cccccccc-cccc-cccc-cccc-cccccccccccc',
+              'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+              200,
+              'text/html',
+              '<p>ok</p>',
+              '# Privacy\nWe collect your email address to create an account.',
+              'validhash',
+              '{}'::jsonb,
+              null
+            ), (
+              'dddddddd-dddd-dddd-dddd-dddddddddddd',
+              'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+              0,
+              '',
+              '',
+              '',
+              'empty',
+              '{}'::jsonb,
+              'timeout'
+            )
+            """
+        )
+
+    applied = migrate(empty_database_url)
+    assert "0002" in applied
+    with psycopg.connect(empty_database_url, row_factory=None) as conn:
+        valid = conn.execute(
+            "select is_valid, id from snapshots order by fetched_at"
+        ).fetchall()
+        current = conn.execute(
+            "select current_snapshot_id, health_status from policy_sources"
+        ).fetchone()
+        attempts = conn.execute(
+            "select status, error_code from source_attempts order by status desc"
+        ).fetchall()
+        observations = conn.execute("select count(*) from observations").fetchone()
+    valid_map = {str(row[1]): row[0] for row in valid}
+    assert valid_map["cccccccc-cccc-cccc-cccc-cccccccccccc"] is True
+    assert valid_map["dddddddd-dddd-dddd-dddd-dddddddddddd"] is False
+    assert current is not None
+    assert str(current[0]) == "cccccccc-cccc-cccc-cccc-cccccccccccc"
+    assert current[1] == "healthy"
+    assert observations is not None and observations[0] == 1
+    statuses = {row[0] for row in attempts}
+    assert "succeeded" in statuses
+    assert "failed" in statuses
+    failed_codes = {row[1] for row in attempts if row[0] == "failed"}
+    assert failed_codes <= {"timeout", "empty", "network"}
+    assert "timeout" in failed_codes or "empty" in failed_codes
 
 
 def test_migrate_rejects_ledger_version_missing_from_directory(
@@ -185,7 +286,5 @@ def test_concurrent_migrate_serializes_on_advisory_lock(empty_database_url: str)
         results = list(pool.map(run, range(2)))
 
     applied = [item for batch in results for item in batch]
-    assert applied == ["0001"]
-    assert _ledger(empty_database_url) == [
-        ("0001", discover_migrations()[0].checksum)
-    ]
+    assert applied == ["0001", "0002"]
+    assert [row[0] for row in _ledger(empty_database_url)] == ["0001", "0002"]

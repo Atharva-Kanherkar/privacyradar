@@ -117,8 +117,8 @@ jobs:
           privacyradar migrate
       - name: Verify required tables and ledger
         run: |
-          test "$(psql -At -h localhost -U privacyradar -d privacyradar -c "select count(*) from information_schema.tables where table_schema = 'public' and table_name in ('companies','policy_sources','snapshots','extractions','change_events','schema_migrations')")" = "6"
-          test "$(psql -At -h localhost -U privacyradar -d privacyradar -c "select count(*) from schema_migrations")" = "1"
+          test "$(psql -At -h localhost -U privacyradar -d privacyradar -c "select count(*) from information_schema.tables where table_schema = 'public' and table_name in ('companies','policy_sources','snapshots','extractions','change_events','schema_migrations','source_attempts','observations','document_changes')")" = "9"
+          test "$(psql -At -h localhost -U privacyradar -d privacyradar -c "select count(*) from schema_migrations")" = "2"
       - name: Prototype upgrade preserves rows
         run: |
           psql -v ON_ERROR_STOP=1 -h localhost -U privacyradar -d privacyradar -c "create database upgrade;"
@@ -127,7 +127,7 @@ jobs:
           DATABASE_URL=postgresql://privacyradar:privacyradar@localhost:5432/upgrade privacyradar migrate
           DATABASE_URL=postgresql://privacyradar:privacyradar@localhost:5432/upgrade privacyradar migrate
           test "$(psql -At -h localhost -U privacyradar -d upgrade -c "select slug from companies where id = '11111111-1111-1111-1111-111111111111'")" = "prototype"
-          test "$(psql -At -h localhost -U privacyradar -d upgrade -c "select version from schema_migrations")" = "0001"
+          test "$(psql -At -h localhost -U privacyradar -d upgrade -c "select count(*) from schema_migrations")" = "2"
 
   browser-smoke:
     name: Browser smoke
