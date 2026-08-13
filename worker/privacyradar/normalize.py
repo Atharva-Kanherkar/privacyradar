@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass
 from io import BytesIO
 
@@ -56,9 +57,23 @@ def decode_body(body: bytes, content_type: str = "") -> str:
     return body.decode("utf-8", errors="replace")
 
 
+def strip_chrome(html: str) -> str:
+    """Drop script, style, nav, footer, and obvious cookie-banner nodes."""
+    cleaned = re.sub(r"(?is)<script\b[^>]*>.*?</script>", " ", html)
+    cleaned = re.sub(r"(?is)<style\b[^>]*>.*?</style>", " ", cleaned)
+    cleaned = re.sub(r"(?is)<nav\b[^>]*>.*?</nav>", " ", cleaned)
+    cleaned = re.sub(r"(?is)<footer\b[^>]*>.*?</footer>", " ", cleaned)
+    cleaned = re.sub(
+        r'(?is)<[^>]+\bid=["\'][^"\']*cookie[^"\']*["\'][^>]*>.*?</[a-zA-Z0-9]+>',
+        " ",
+        cleaned,
+    )
+    return cleaned
+
+
 def html_to_markdown(html: str, url: str = "") -> str:
     extracted = trafilatura.extract(
-        html,
+        strip_chrome(html),
         url=url or None,
         output_format="markdown",
         include_comments=False,

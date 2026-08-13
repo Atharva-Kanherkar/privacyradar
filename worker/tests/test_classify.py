@@ -46,7 +46,7 @@ def test_classify_http_errors() -> None:
 
 def test_classify_wrong_type() -> None:
     result = classify_fetch(
-        _fetched(content_type="application/javascript", markdown="function x(){return 1;}")
+        _fetched(content_type="text/javascript", markdown="function x(){return 1;}")
     )
     assert result.error_code == "wrong_type"
 
@@ -71,10 +71,15 @@ def test_classify_blank_pdf_is_not_a_valid_snapshot() -> None:
 
 
 def test_classify_pdf_with_extracted_text() -> None:
+    from pathlib import Path
+
+    body = (Path(__file__).resolve().parent / "corpus" / "normalize" / "policy.pdf").read_bytes()
     result = classify_fetch(
-        _fetched(content_type="application/pdf", html="", markdown=LONG, body=b"%PDF-fake")
+        _fetched(content_type="application/pdf", html="", markdown="", body=body)
     )
     assert result.valid
+    assert result.normalized is not None
+    assert "email address" in result.normalized.markdown.lower()
 
 
 def test_safe_error_code_maps_dns_tls_blocked() -> None:

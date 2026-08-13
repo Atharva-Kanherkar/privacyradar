@@ -5,6 +5,7 @@ from pathlib import Path
 
 import psycopg
 import pytest
+from psycopg.rows import dict_row
 
 from privacyradar.migrate import MigrationError, discover_migrations, migrate
 
@@ -244,30 +245,38 @@ def test_migrate_0001_database_backfills_valid_and_invalid_snapshots(
 
     applied = migrate(empty_database_url)
     assert "0002" in applied
-    with psycopg.connect(empty_database_url, row_factory=None) as conn:
-        valid = conn.execute(
-            "select is_valid, id from snapshots order by fetched_at"
-        ).fetchall()
+    from privacyradar.reconcile import reconcile_observations
+
+    with psycopg.connect(empty_database_url, row_factory=dict_row) as conn:
+        first = reconcile_observations(conn)
+        conn.commit()
+        second = reconcile_observations(conn)
+        conn.commit()
+        valid = conn.execute("select is_valid, id from snapshots").fetchall()
         current = conn.execute(
             "select current_snapshot_id, health_status from policy_sources"
         ).fetchone()
         attempts = conn.execute(
-            "select status, error_code from source_attempts order by status desc"
+            "select status, error_code from source_attempts"
         ).fetchall()
-        observations = conn.execute("select count(*) from observations").fetchone()
-    valid_map = {str(row[1]): row[0] for row in valid}
+        observations = conn.execute("select count(*) as n from observations").fetchone()
+    assert first.observations_created == 0
+    assert first.attempts_created == 0
+    assert second.observations_created == 0
+    assert second.attempts_created == 0
+    assert second.current_pointers_set == 0
+    valid_map = {str(row["id"]): row["is_valid"] for row in valid}
     assert valid_map["cccccccc-cccc-cccc-cccc-cccccccccccc"] is True
     assert valid_map["dddddddd-dddd-dddd-dddd-dddddddddddd"] is False
     assert current is not None
-    assert str(current[0]) == "cccccccc-cccc-cccc-cccc-cccccccccccc"
-    assert current[1] == "healthy"
-    assert observations is not None and observations[0] == 1
-    statuses = {row[0] for row in attempts}
+    assert str(current["current_snapshot_id"]) == "cccccccc-cccc-cccc-cccc-cccccccccccc"
+    assert current["health_status"] == "healthy"
+    assert observations is not None and observations["n"] == 1
+    statuses = {row["status"] for row in attempts}
     assert "succeeded" in statuses
     assert "failed" in statuses
-    failed_codes = {row[1] for row in attempts if row[0] == "failed"}
-    assert failed_codes <= {"timeout", "empty", "network"}
-    assert "timeout" in failed_codes or "empty" in failed_codes
+    failed_codes = {row["error_code"] for row in attempts if row["status"] == "failed"}
+    assert failed_codes == {"timeout"}
 
 
 def test_migrate_rejects_ledger_version_missing_from_directory(
