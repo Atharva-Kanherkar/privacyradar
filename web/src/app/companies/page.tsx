@@ -40,8 +40,8 @@ export default async function CompaniesPage() {
               </td>
               <td className="py-3 text-[var(--muted)]">{c.category}</td>
               <td className="py-3 font-mono text-xs text-[var(--muted)]">
-                {c.last_fetched
-                  ? new Date(c.last_fetched).toLocaleDateString()
+                {c.last_verified_at
+                  ? new Date(c.last_verified_at).toLocaleDateString()
                   : "never"}
               </td>
               <td className="py-3 text-[var(--muted)]">

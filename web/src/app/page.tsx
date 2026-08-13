@@ -77,8 +77,8 @@ export default async function Home() {
                     {c.name}
                   </Link>
                   <span className="font-mono text-xs text-[var(--muted)]">
-                    {c.last_fetched
-                      ? formatWhen(c.last_fetched)
+                    {c.last_verified_at
+                      ? formatWhen(c.last_verified_at)
                       : "queued"}
                   </span>
                 </div>
