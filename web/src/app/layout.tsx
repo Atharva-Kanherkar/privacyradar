@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Newsreader, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import "./globals.css";
 
 const serif = Newsreader({
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
     "live inventory of what data companies take, and what just changed in their privacy policies.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
