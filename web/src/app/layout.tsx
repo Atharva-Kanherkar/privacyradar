@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     >
       <body className="min-h-full flex flex-col bg-[var(--paper)] text-[var(--ink)]">
         <header className="border-b border-[var(--rule)]">
-          <div className="mx-auto flex max-w-5xl items-baseline justify-between gap-6 px-6 py-5">
+            <div className="mx-auto flex max-w-5xl flex-wrap items-baseline justify-between gap-x-6 gap-y-3 px-6 py-5">
             <Link href="/" className="font-serif text-2xl tracking-tight">
               privacyradar
             </Link>
