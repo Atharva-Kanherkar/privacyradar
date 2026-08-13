@@ -1,8 +1,3 @@
--- Current-head schema reference. Apply with `privacyradar migrate`.
--- This file matches db/migrations/0001_initial.sql so docker-compose and
--- prototype databases can still bootstrap without the Python runner.
--- The migration ledger table (schema_migrations) is owned by the runner.
-
 -- privacyradar source of truth.
 -- Hash-first: LLM rows are only written when a snapshot hash changes.
 

@@ -13,12 +13,19 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
 dist/
 
 # node
 node_modules/
 web/.next/
 web/out/
+web/test-results/
+web/playwright-report/
+web/blob-report/
+web/playwright/.cache/
 
 # snapshots / crawl cache
 data/snapshots/
