@@ -52,3 +52,19 @@ def test_fake_analyzer_returns_configured_practices_and_judgement() -> None:
     assert judge_model == "fake-model"
     assert analyzer.extract_calls == 1
     assert analyzer.judge_calls == 1
+
+
+def test_fake_analyzer_requires_configured_outputs() -> None:
+    analyzer = FakeAnalyzer()
+    try:
+        analyzer.extract_practices("Signal", "policy")
+    except RuntimeError as exc:
+        assert "PracticeDocument" in str(exc)
+    else:
+        raise AssertionError("expected missing document to fail")
+    try:
+        analyzer.judge_materiality("Signal", "old", "new", [])
+    except RuntimeError as exc:
+        assert "MaterialityJudgement" in str(exc)
+    else:
+        raise AssertionError("expected missing judgement to fail")
