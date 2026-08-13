@@ -3,10 +3,11 @@
 ## Quality gates
 
 - Python and TypeScript lint/type checks pass.
+- Worker statement coverage cannot regress below the floor in `worker/pyproject.toml` (`--cov-fail-under`).
 - Domain coverage is at least 90%; evidence validation, authorization, state transitions, notification deduplication, and entitlement checks have 100% branch coverage.
 - The labeled material-change set reaches at least 95% precision before automatic publication.
 - Every public claim passes quote-anchor, context, company, region, and snapshot validation.
-- The critical Playwright journeys pass at 320px and desktop widths.
+- The critical Playwright journeys pass at 320px and desktop widths. Issue #4 ships a public smoke subset; later issues expand it.
 
 ## Suites
 
