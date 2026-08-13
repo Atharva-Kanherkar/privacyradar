@@ -73,6 +73,17 @@ def test_fixture_module_does_not_import_live_clients() -> None:
     assert "openai" not in imported
 
 
+def test_testing_package_init_does_not_import_live_clients() -> None:
+    source = Path(__file__).resolve().parents[1] / "privacyradar" / "testing" / "__init__.py"
+    tree = ast.parse(source.read_text())
+    imported: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.module:
+            imported.append(node.module)
+    assert not any("fakes" in module for module in imported)
+    assert not any(module.startswith("httpx") or module.startswith("openai") for module in imported)
+
+
 def test_fixture_persistence_round_trip(db_url: str) -> None:
     company = make_company(slug="roundtrip")
     source = make_source(company)
