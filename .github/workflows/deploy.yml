@@ -51,24 +51,7 @@ jobs:
           printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
           vercel deploy --prod --yes --token "$VERCEL_TOKEN"
 
-  railway:
-    name: Deploy worker to Railway
-    needs: gate
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    environment: production
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ needs.gate.outputs.sha }}
-      - name: Install Railway CLI
-        env:
-          RAILWAY_VERSION: "5.20.0"
-        run: |
-          curl -fsSL https://railway.com/install.sh | sh
-          echo "$HOME/.railway/bin" >> "$GITHUB_PATH"
-      - name: Deploy worker
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
-        run: railway up --ci --yes --service worker --environment production --project "$RAILWAY_PROJECT_ID" --detach
+  # Railway worker deploys from the GitHub App on main, with Wait for CI
+  # enabled so a failed CI check suite skips the worker. Do not also run
+  # `railway up` here: GitHub OAuth tokens are not valid Railway API tokens,
+  # and a failing job in this workflow would skip the GitHub-triggered deploy.
