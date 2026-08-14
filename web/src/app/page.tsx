@@ -30,7 +30,8 @@ export default async function Home() {
   const [events, companies, dataTypes] = await Promise.all([
     loadEvents(6),
     loadCompanies(),
-    mapCompanyDataTypes().catch(() => new Map<string, string[]>()),
+    // null = lookup failed; cards must say "unavailable", not "nothing found".
+    mapCompanyDataTypes().catch(() => null),
   ]);
 
   return (
@@ -89,7 +90,7 @@ export default async function Home() {
               <CompanyCard
                 key={company.id}
                 company={company}
-                dataTypes={dataTypes.get(company.id) ?? []}
+                dataTypes={dataTypes ? (dataTypes.get(company.id) ?? []) : null}
               />
             ))}
           </div>

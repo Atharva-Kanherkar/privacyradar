@@ -71,12 +71,18 @@ export default async function CompanyPage({
 
   const { company, events, claims } = result.data;
 
-  const collected = claims
-    .filter(
-      (claim) =>
-        (claim.category === "data_collected" || claim.category === "sensitive") &&
-        claim.attribute !== "none_disclosed",
-    )
+  const collectionClaims = claims.filter(
+    (claim) =>
+      (claim.category === "data_collected" || claim.category === "sensitive") &&
+      claim.attribute !== "none_disclosed",
+  );
+  const collected = collectionClaims
+    .filter((claim) => claim.polarity === "disclosed")
+    .sort(bySeverity);
+  // "We do not collect X" and unclear claims must not sit under a heading
+  // that says the company takes them.
+  const notCollected = collectionClaims
+    .filter((claim) => claim.polarity !== "disclosed")
     .sort(bySeverity);
   const purposes = claims
     .filter((claim) => claim.category === "purpose" && claim.polarity === "disclosed")
@@ -157,6 +163,19 @@ export default async function CompanyPage({
           </div>
         )}
       </section>
+
+      {notCollected.length > 0 ? (
+        <section className="mt-12">
+          <h2 className="text-2xl font-semibold tracking-tight">
+            What the policy denies or leaves unclear
+          </h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {notCollected.map((claim) => (
+              <ClaimCard key={claim.claim_key} claim={claim} />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {purposes.length > 0 ? (
         <section className="mt-12">

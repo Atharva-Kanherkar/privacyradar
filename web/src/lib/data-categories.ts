@@ -64,7 +64,7 @@ export const CONTROL: Record<string, AttributeMeta> = {
 
 export const RETENTION: Record<string, AttributeMeta> = {
   duration_disclosed: { label: "Retention period disclosed", plain: "The policy says how long data is kept." },
-  unspecified: { label: "Keeps data indefinitely?", plain: "No clear limit on how long data is kept." },
+  unspecified: { label: "Retention period not disclosed", plain: "The policy doesn't say how long data is kept." },
 };
 
 const FALLBACK_BY_CATEGORY: Record<string, Record<string, AttributeMeta>> = {

@@ -19,8 +19,10 @@ test.describe("Assistant", () => {
         page.getByRole("button", { name: "Do they sell or share my data?" }),
       ).toBeVisible();
     } else {
-      // No model key (CI): the assistant stays off and says so.
+      // No model key (CI): the assistant stays off, says so, and renders no
+      // question control at all.
       await expect(page.getByText("The cited assistant is off")).toBeVisible();
+      await expect(page.getByLabel("Question about this company")).toHaveCount(0);
     }
   });
 });

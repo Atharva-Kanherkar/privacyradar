@@ -25,9 +25,10 @@ export function CompanyCard({
     CompanyRow,
     "slug" | "name" | "category" | "last_verified_at" | "source_health"
   >;
-  dataTypes: string[];
+  /** null means the data-type lookup failed, which is not an empty review. */
+  dataTypes: string[] | null;
 }) {
-  const ordered = orderAttributes(dataTypes);
+  const ordered = orderAttributes(dataTypes ?? []);
   const shown = ordered.slice(0, CHIP_LIMIT);
   const extra = ordered.length - shown.length;
   return (
@@ -57,6 +58,10 @@ export function CompanyCard({
             </span>
           ) : null}
         </div>
+      ) : dataTypes === null ? (
+        <p className="text-xs text-[var(--muted)]">
+          Data summary unavailable right now.
+        </p>
       ) : (
         <p className="text-xs text-[var(--muted)]">
           Policy captured. Evidence review in progress.

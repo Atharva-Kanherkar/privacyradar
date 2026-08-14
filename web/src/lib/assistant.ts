@@ -27,8 +27,37 @@ export type AssistantGate =
   | { ok: true }
   | { ok: false; code: "disabled" | "rate_limited" | "unknown_company"; message: string };
 
-export async function checkRateLimit(identity: string): Promise<boolean> {
+/**
+ * Quota key for signed-out users. The leftmost X-Forwarded-For hop is
+ * client-controlled, so prefer the platform-set headers and otherwise take
+ * the LAST hop, which the trusted proxy appended.
+ */
+export function clientIdentity(
+  headers: Headers,
+  userId: string | undefined,
+): string {
+  if (userId) return hashIdentity(userId);
+  const trusted =
+    headers.get("x-vercel-forwarded-for") ?? headers.get("x-real-ip");
+  if (trusted) return hashIdentity(trusted.split(",")[0].trim());
+  const hops = headers.get("x-forwarded-for")?.split(",") ?? [];
+  const lastHop = hops[hops.length - 1]?.trim();
+  return hashIdentity(lastHop || "anonymous");
+}
+
+export async function underRateLimit(identity: string): Promise<boolean> {
   if (!sql) return false;
+  const day = new Date().toISOString().slice(0, 10);
+  const usage = await sql<{ count: number }[]>`
+    select count from assistant_usage
+    where identity_hash = ${identity} and day = ${day}::date
+  `;
+  return (usage[0]?.count ?? 0) < DAILY_LIMIT;
+}
+
+/** Count a question only once we actually spend model tokens on it. */
+export async function recordUsage(identity: string): Promise<void> {
+  if (!sql) return;
   const day = new Date().toISOString().slice(0, 10);
   await sql`
     insert into assistant_usage (identity_hash, day, count)
@@ -37,11 +66,6 @@ export async function checkRateLimit(identity: string): Promise<boolean> {
       set count = assistant_usage.count + 1,
           updated_at = now()
   `;
-  const usage = await sql<{ count: number }[]>`
-    select count from assistant_usage
-    where identity_hash = ${identity} and day = ${day}::date
-  `;
-  return (usage[0]?.count ?? 0) <= DAILY_LIMIT;
 }
 
 export type Grounding = {

@@ -14,7 +14,8 @@ export default async function CompaniesPage({
   const { q } = await searchParams;
   const [result, dataTypes] = await Promise.all([
     loadCompanies(q),
-    mapCompanyDataTypes().catch(() => new Map<string, string[]>()),
+    // null = lookup failed; cards must say "unavailable", not "nothing found".
+    mapCompanyDataTypes().catch(() => null),
   ]);
 
   return (
@@ -44,7 +45,7 @@ export default async function CompaniesPage({
             <CompanyCard
               key={company.id}
               company={company}
-              dataTypes={dataTypes.get(company.id) ?? []}
+              dataTypes={dataTypes ? (dataTypes.get(company.id) ?? []) : null}
             />
           ))}
         </div>

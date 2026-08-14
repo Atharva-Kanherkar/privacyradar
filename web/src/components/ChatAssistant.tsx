@@ -20,6 +20,9 @@ export function ChatAssistant({
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Synchronous lock: `streaming` state is stale within the same render, so a
+  // double Enter/click could start two requests without this.
+  const sendingRef = useRef(false);
 
   const suggestions = [
     `What data does ${companyName} collect about me?`,
@@ -37,7 +40,8 @@ export function ChatAssistant({
 
   async function send(question: string) {
     const trimmed = question.trim().slice(0, MAX_INPUT);
-    if (!trimmed || streaming) return;
+    if (!trimmed || sendingRef.current) return;
+    sendingRef.current = true;
     setError(null);
     setInput("");
     const history: Message[] = [...messages, { role: "user", content: trimmed }];
@@ -90,6 +94,7 @@ export function ChatAssistant({
         setError("Connection lost. Please try again.");
       }
     } finally {
+      sendingRef.current = false;
       setStreaming(false);
       abortRef.current = null;
     }

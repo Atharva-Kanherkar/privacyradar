@@ -1,9 +1,10 @@
 import {
   assistantEnabled,
   buildSystemPrompt,
-  checkRateLimit,
-  hashIdentity,
+  clientIdentity,
   loadGrounding,
+  recordUsage,
+  underRateLimit,
   type ChatMessage,
 } from "@/lib/assistant";
 import { getSessionFromCookies } from "@/lib/session";
@@ -55,20 +56,19 @@ export async function POST(request: Request): Promise<Response> {
     return jsonError(400, "bad_request", "Invalid messages.");
   }
 
+  const grounding = await loadGrounding(slug);
+  if (!grounding) {
+    return jsonError(404, "unknown_company", "We do not track that company.");
+  }
+
   const session = await getSessionFromCookies();
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const identity = hashIdentity(session?.user?.id ?? forwarded ?? "anonymous");
-  if (!(await checkRateLimit(identity))) {
+  const identity = clientIdentity(request.headers, session?.user?.id);
+  if (!(await underRateLimit(identity))) {
     return jsonError(
       429,
       "rate_limited",
       "You have reached today's question limit. Come back tomorrow.",
     );
-  }
-
-  const grounding = await loadGrounding(slug);
-  if (!grounding) {
-    return jsonError(404, "unknown_company", "We do not track that company.");
   }
 
   const model =
@@ -101,6 +101,9 @@ export async function POST(request: Request): Promise<Response> {
       "The assistant could not reach its model. Try again in a moment.",
     );
   }
+
+  // Only a question that reached the model spends quota.
+  await recordUsage(identity);
 
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
