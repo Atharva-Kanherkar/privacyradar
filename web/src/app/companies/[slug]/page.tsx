@@ -75,12 +75,18 @@ export default async function CompanyPage({
         {company.category}
       </p>
       <h1 className="mt-2 font-serif text-4xl tracking-tight">{company.name}</h1>
-      <div className="mt-4">
+      <div className="mt-4 flex flex-wrap gap-3">
         <WatchButton
           slug={company.slug}
           signedIn={Boolean(session?.user)}
           watching={watching}
         />
+        <Link
+          href={`/compare?companies=${company.slug}`}
+          className="inline-flex min-h-11 items-center border border-[var(--rule)] px-4 font-sans text-sm"
+        >
+          Compare
+        </Link>
       </div>
       <p className="mt-3 font-sans text-sm text-[var(--muted)]">
         {company.privacy_url ? (

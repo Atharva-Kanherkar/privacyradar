@@ -270,15 +270,48 @@ def persist_notification(
 
 
 def seed_public_fixtures(conn: psycopg.Connection[dict[str, Any]]) -> int:
-    """Insert the default public smoke company if it is not already present."""
-    company = make_company()
+    """Insert public smoke companies if they are not already present."""
+    created = 0
+    created += _seed_company_fixture(conn, make_company())
+    created += _seed_company_fixture(
+        conn,
+        make_company(
+            slug="proton",
+            name="Proton",
+            website="https://proton.me",
+            category="productivity",
+        ),
+        markdown="# Privacy\nWe may share information with advertising partners.\n",
+        html="<h1>Privacy</h1><p>We may share information with advertising partners.</p>",
+        quote="We may share information with advertising partners.",
+        category="sharing",
+        attribute="advertising_partner",
+        published_headline="Proton advertising-partner language.",
+    )
+    return created
+
+
+def _seed_company_fixture(
+    conn: psycopg.Connection[dict[str, Any]],
+    company: CompanyFixture,
+    *,
+    markdown: str | None = None,
+    html: str | None = None,
+    quote: str = "We collect your email address to create an account.",
+    category: str = "data_collected",
+    attribute: str = "email",
+    published_headline: str = "PUBLISHED_FIXTURE_HEADLINE",
+) -> int:
     existing = conn.execute(
         "select 1 from companies where slug = %s", (company.slug,)
     ).fetchone()
     created = 0
     if existing is None:
         source = make_source(company)
-        observation = make_observation(source)
+        if markdown is None:
+            observation = make_observation(source)
+        else:
+            observation = make_observation(source, markdown=markdown, html=html or markdown)
         claim = make_claim(observation, company)
         persist_company(conn, company)
         persist_source(conn, source)
@@ -302,12 +335,25 @@ def seed_public_fixtures(conn: psycopg.Connection[dict[str, Any]]) -> int:
             ),
         )
         created = 1
-    _ensure_published_fixture(conn, company)
+    _ensure_published_fixture(
+        conn,
+        company,
+        quote=quote,
+        category=category,
+        attribute=attribute,
+        published_headline=published_headline,
+    )
     return created
 
 
 def _ensure_published_fixture(
-    conn: psycopg.Connection[dict[str, Any]], company: CompanyFixture
+    conn: psycopg.Connection[dict[str, Any]],
+    company: CompanyFixture,
+    *,
+    quote: str = "We collect your email address to create an account.",
+    category: str = "data_collected",
+    attribute: str = "email",
+    published_headline: str = "PUBLISHED_FIXTURE_HEADLINE",
 ) -> None:
     already = conn.execute(
         "select 1 from publication_revisions where company_id = %s limit 1",
@@ -329,7 +375,6 @@ def _ensure_published_fixture(
     if ctx is None:
         return
     markdown = str(ctx["markdown"] or "")
-    quote = "We collect your email address to create an account."
     start = markdown.find(quote)
     if start < 0:
         return
@@ -339,8 +384,8 @@ def _ensure_published_fixture(
     event_id = str(stable_uuid("published-event", company.slug))
     key = claim_key(
         taxonomy_version=TAXONOMY_VERSION,
-        category="data_collected",
-        attribute="email",
+        category=category,
+        attribute=attribute,
         polarity="disclosed",
     )
     conn.execute(
@@ -365,9 +410,9 @@ def _ensure_published_fixture(
           id, run_id, claim_key, category, attribute, polarity,
           confidence, validation_state
         )
-        values (%s, %s, %s, 'data_collected', 'email', 'disclosed', 1, 'valid')
+        values (%s, %s, %s, %s, %s, 'disclosed', 1, 'valid')
         """,
-        (claim_id, run_id, key),
+        (claim_id, run_id, key, category, attribute),
     )
     conn.execute(
         """
@@ -393,8 +438,8 @@ def _ensure_published_fixture(
           materiality, headline, summary, quotes, publication_state, published_at
         )
         values (
-          %s, %s, %s, %s, %s, 'material', 'PUBLISHED_FIXTURE_HEADLINE',
-          'Email collection language.', %s, 'published', now()
+          %s, %s, %s, %s, %s, 'material', %s,
+          'Published fixture language.', %s, 'published', now()
         )
         on conflict (id) do nothing
         """,
@@ -404,6 +449,7 @@ def _ensure_published_fixture(
             str(ctx["source_id"]),
             str(ctx["snapshot_id"]),
             str(ctx["snapshot_id"]),
+            published_headline,
             Json([{"text": quote, "section": "Privacy"}]),
         ),
     )
@@ -411,9 +457,9 @@ def _ensure_published_fixture(
         """
         insert into publication_revisions (
           id, company_id, observation_id, extraction_run_id, change_event_id,
-          revision_n, state, actor
+          revision_n, state, actor, taxonomy_version
         )
-        values (%s, %s, %s, %s, %s, 1, 'published', 'cli:local')
+        values (%s, %s, %s, %s, %s, 1, 'published', 'cli:local', %s)
         """,
         (
             revision_id,
@@ -421,6 +467,7 @@ def _ensure_published_fixture(
             str(ctx["observation_id"]),
             run_id,
             event_id,
+            TAXONOMY_VERSION,
         ),
     )
     conn.execute(
@@ -429,13 +476,15 @@ def _ensure_published_fixture(
           id, revision_id, candidate_claim_id, claim_key, category, attribute,
           polarity, quote, snapshot_id, start_offset, end_offset
         )
-        values (%s, %s, %s, %s, 'data_collected', 'email', 'disclosed', %s, %s, %s, %s)
+        values (%s, %s, %s, %s, %s, %s, 'disclosed', %s, %s, %s, %s)
         """,
         (
             str(stable_uuid("fixture-published-claim", company.slug)),
             revision_id,
             claim_id,
             key,
+            category,
+            attribute,
             quote,
             str(ctx["snapshot_id"]),
             start,

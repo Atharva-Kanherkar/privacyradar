@@ -1,5 +1,5 @@
 -- Current-head schema reference. Apply with `privacyradar migrate`.
--- Docker-compose may bootstrap from this file; migrate still records 0001–0009
+-- Docker-compose may bootstrap from this file; migrate still records 0001–0010
 -- and installs append-only triggers. This file matches the end state of
 -- numbered migrations (tables and functions; some triggers are migration-only).
 
@@ -325,6 +325,7 @@ create table if not exists publication_revisions (
   revision_n          integer not null,
   state               text not null,
   actor               text not null,
+  taxonomy_version    text not null default '1.0.0',
   created_at          timestamptz not null default now(),
   unique (company_id, revision_n),
   check (state in ('published', 'rolled_back')),
@@ -662,7 +663,7 @@ create table if not exists product_events (
   company_id  uuid,
   event_id    uuid,
   created_at  timestamptz not null default now(),
-  check (name in ('follow', 'unfollow', 'radar_view', 'evidence_open'))
+  check (name in ('follow', 'unfollow', 'radar_view', 'evidence_open', 'compare_start', 'compare_complete', 'compare_evidence'))
 );
 
 create index if not exists product_events_user_idx

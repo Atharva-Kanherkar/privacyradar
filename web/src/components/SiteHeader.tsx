@@ -3,6 +3,7 @@ import { AuthNav } from "./AuthNav";
 
 const LINKS = [
   { href: "/companies", label: "Companies" },
+  { href: "/compare", label: "Compare" },
   { href: "/changes", label: "Changes" },
   { href: "/methodology", label: "Methodology" },
   { href: "/feed.xml", label: "RSS" },
