@@ -62,6 +62,8 @@ jobs:
         with:
           ref: ${{ needs.gate.outputs.sha }}
       - name: Install Railway CLI
+        env:
+          RAILWAY_VERSION: "5.20.0"
         run: |
           curl -fsSL https://railway.com/install.sh | sh
           echo "$HOME/.railway/bin" >> "$GITHUB_PATH"
