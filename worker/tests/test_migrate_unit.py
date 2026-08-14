@@ -105,4 +105,5 @@ def test_schema_sql_is_current_head_reference() -> None:
     assert "create table if not exists notification_fanout_jobs" in body
     assert "create table if not exists catalog_cohorts" in body
     assert "create table if not exists company_requests" in body
+    assert "create table if not exists catalog_health_snapshots" in body
     assert "schema_migrations" not in body
