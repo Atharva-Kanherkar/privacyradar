@@ -27,6 +27,9 @@ export default defineConfig({
           ...process.env,
           AUTH_DELIVERY: "fixture",
           BETTER_AUTH_URL: baseURL,
+          NOTIFY_PROVIDER: "fake",
+          AUTH_SECRET: process.env.AUTH_SECRET ?? "ci-test-auth-secret-issue-10",
+          PUBLIC_BASE_URL: baseURL,
         },
       },
   projects: [

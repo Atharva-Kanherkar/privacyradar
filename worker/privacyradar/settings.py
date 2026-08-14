@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     playwright_fallback: bool = False
     firecrawl_api_key: str = ""
     catalog_path: Path = ROOT / "data" / "catalog.yaml"
+    auth_secret: str = ""
+    notify_signing_key: str = ""
+    notify_provider: str = "fake"
+    notify_from: str = "PrivacyRadar <alerts@privacyradar.local>"
+    public_base_url: str = "http://127.0.0.1:3000"
+    resend_api_key: str = ""
+    resend_webhook_secret: str = ""
 
 
 settings = Settings()

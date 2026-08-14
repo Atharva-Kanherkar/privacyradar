@@ -249,10 +249,23 @@ def persist_follow(
 
 
 def persist_notification(
-    _conn: psycopg.Connection[dict[str, Any]], notification: NotificationFixture
+    conn: psycopg.Connection[dict[str, Any]], notification: NotificationFixture
 ) -> None:
-    raise FixturePersistenceUnsupported(
-        f"notification tables are owned by issue #12; cannot persist {notification.id}"
+    conn.execute(
+        """
+        insert into notification_outbox (
+          id, user_id, event_id, channel, revision, kind, state, created_at
+        )
+        values (%s, %s, %s, %s, 1, 'publish', %s, %s)
+        """,
+        (
+            str(notification.id),
+            str(notification.user_id),
+            str(notification.event_id),
+            notification.channel,
+            notification.state,
+            notification.created_at,
+        ),
     )
 
 

@@ -73,6 +73,11 @@ export default async function AccountPage() {
         </button>
       </form>
       <p className="mt-8 font-sans text-sm">
+        <a href="/radar/settings" className="underline">
+          Alert settings
+        </a>
+      </p>
+      <p className="mt-8 font-sans text-sm">
         <a href="/account/export" className="underline">
           Download account export (JSON)
         </a>

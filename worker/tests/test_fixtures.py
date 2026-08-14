@@ -118,9 +118,7 @@ def test_fixture_isolation_hides_other_keys(db_url: str) -> None:
     with _connect(db_url) as conn:
         persist_company(conn, company)
         conn.commit()
-        missing = conn.execute(
-            "select 1 from companies where slug = %s", ("other-key",)
-        ).fetchone()
+        missing = conn.execute("select 1 from companies where slug = %s", ("other-key",)).fetchone()
         present = conn.execute(
             "select slug from companies where slug = %s", ("only-here",)
         ).fetchone()
@@ -133,9 +131,7 @@ def test_fixture_isolation_other_key_absent(db_url: str) -> None:
     with _connect(db_url) as conn:
         persist_company(conn, company)
         conn.commit()
-        missing = conn.execute(
-            "select 1 from companies where slug = %s", ("only-here",)
-        ).fetchone()
+        missing = conn.execute("select 1 from companies where slug = %s", ("only-here",)).fetchone()
         present = conn.execute(
             "select slug from companies where slug = %s", ("other-key",)
         ).fetchone()
@@ -165,13 +161,25 @@ def test_persist_user_round_trip(db_url: str) -> None:
             "select status from watches where user_id = %s",
             (str(user.id),),
         ).fetchone()
-        with pytest.raises(FixturePersistenceUnsupported, match="issue #12"):
-            persist_notification(conn, make_notification(user))
+        seed_public_fixtures(conn)
+        event = conn.execute(
+            "select id from change_events where publication_state = 'published' limit 1"
+        ).fetchone()
+        assert event is not None
+        persist_notification(conn, make_notification(user, event_id=event["id"]))
+        conn.commit()
+        boxed = conn.execute(
+            "select state, channel from notification_outbox where user_id = %s",
+            (str(user.id),),
+        ).fetchone()
     assert row is not None
     assert row["email"] == user.email
     assert row["region"] == "US"
     assert watch is not None
     assert watch["status"] == "active"
+    assert boxed is not None
+    assert boxed["state"] == "pending"
+    assert boxed["channel"] == "email"
 
 
 def test_future_tables_are_in_memory_only(db_url: str) -> None:

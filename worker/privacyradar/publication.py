@@ -45,9 +45,7 @@ class PublishResult:
 
 
 def _switch_enabled(conn: Any, key: str) -> bool:
-    row = conn.execute(
-        "select enabled from product_switches where key = %s", (key,)
-    ).fetchone()
+    row = conn.execute("select enabled from product_switches where key = %s", (key,)).fetchone()
     return bool(row and row["enabled"])
 
 
@@ -281,12 +279,14 @@ def publish_run(
             "n_claims": len(claims),
         },
     )
+    if change_event_id:
+        from privacyradar.notify import enqueue_fanout
+
+        enqueue_fanout(conn, change_event_id, kind="publish")
     return PublishResult(revision_id=revision_id, revision_n=revision_n, n_claims=len(claims))
 
 
-def _set_event_state(
-    conn: Any, event_id: str, state: str, *, published: bool = False
-) -> None:
+def _set_event_state(conn: Any, event_id: str, state: str, *, published: bool = False) -> None:
     row = conn.execute(
         "select publication_state from change_events where id = %s",
         (event_id,),
@@ -363,6 +363,9 @@ def publish_event(conn: Any, event_id: str, *, actor: str) -> None:
         target_id=event_id,
         reason="publish_event",
     )
+    from privacyradar.notify import enqueue_fanout
+
+    enqueue_fanout(conn, event_id, kind="publish")
 
 
 def rollback_revision(conn: Any, revision_id: str, *, actor: str, reason: str) -> PublishResult:
@@ -445,6 +448,9 @@ def rollback_revision(conn: Any, revision_id: str, *, actor: str, reason: str) -
                 """,
                 (abandoned,),
             )
+            from privacyradar.notify import enqueue_fanout
+
+            enqueue_fanout(conn, abandoned, kind="correction")
         return result
     if abandoned:
         conn.execute(
@@ -455,6 +461,9 @@ def rollback_revision(conn: Any, revision_id: str, *, actor: str, reason: str) -
             """,
             (abandoned,),
         )
+        from privacyradar.notify import enqueue_fanout
+
+        enqueue_fanout(conn, abandoned, kind="correction")
     return PublishResult(revision_id=marker_id, revision_n=marker_n, n_claims=0)
 
 
@@ -499,9 +508,7 @@ def resolve_correction(
     note: str,
 ) -> str | None:
     actor = _actor(actor)
-    row = conn.execute(
-        "select * from corrections where id = %s", (correction_id,)
-    ).fetchone()
+    row = conn.execute("select * from corrections where id = %s", (correction_id,)).fetchone()
     if row is None:
         raise PublicationError("missing_correction")
     if decision == "declined":
@@ -561,6 +568,9 @@ def resolve_correction(
             """,
             (str(event["change_event_id"]),),
         )
+        from privacyradar.notify import enqueue_fanout
+
+        enqueue_fanout(conn, str(event["change_event_id"]), kind="correction")
     _audit(
         conn,
         actor=actor,

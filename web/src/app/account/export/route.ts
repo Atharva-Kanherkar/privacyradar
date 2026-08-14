@@ -48,6 +48,20 @@ export async function GET() {
     where w.user_id = ${session.user.id}
     order by c.slug
   `;
+  const preferences = await sql<
+    { frequency: string; muted_company_ids: string[] }[]
+  >`
+    select frequency, muted_company_ids
+    from notification_preferences
+    where user_id = ${session.user.id}
+  `;
+  const deliveries = await sql<{ sent: number; suppressed: number }[]>`
+    select
+      count(*) filter (where state = 'sent') as sent,
+      count(*) filter (where state = 'suppressed') as suppressed
+    from notification_outbox
+    where user_id = ${session.user.id}
+  `;
 
   await sql`
     insert into consent_events (user_id, action)
@@ -63,6 +77,8 @@ export async function GET() {
       profile: profiles[0] ?? { region: "unspecified" },
       consent_events: consents,
       watches,
+      notification_preferences: preferences[0] ?? { frequency: "immediate" },
+      notification_counts: deliveries[0] ?? { sent: 0, suppressed: 0 },
       sessions: sessions.map((row) => ({
         id: row.id,
         created_at: row.created_at,
