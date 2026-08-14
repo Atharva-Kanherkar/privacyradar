@@ -122,6 +122,9 @@ def db_url(migrated_database_url: str) -> str:
         conn.execute(
             """
             truncate
+              evidence_spans,
+              candidate_claims,
+              extraction_runs,
               source_operator_actions,
               fetch_jobs,
               document_changes,
