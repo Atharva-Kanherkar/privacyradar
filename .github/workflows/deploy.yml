@@ -69,4 +69,4 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
-        run: railway up --ci --yes --service worker --project "$RAILWAY_PROJECT_ID" --detach
+        run: railway up --ci --yes --service worker --environment production --project "$RAILWAY_PROJECT_ID" --detach
