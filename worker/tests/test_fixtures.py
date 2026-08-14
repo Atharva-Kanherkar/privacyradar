@@ -143,16 +143,32 @@ def test_fixture_isolation_other_key_absent(db_url: str) -> None:
     assert present is not None
 
 
-def test_future_tables_are_in_memory_only(db_url: str) -> None:
-    user = make_user()
+def test_persist_user_round_trip(db_url: str) -> None:
+    user = make_user(handle="roundtrip-user")
     company = make_company(slug="later")
     with _connect(db_url) as conn:
-        with pytest.raises(FixturePersistenceUnsupported, match="issue #10"):
-            persist_user(conn, user)
+        persist_user(conn, user)
+        conn.commit()
+        row = conn.execute(
+            """
+            select u.email, p.region
+            from auth_users u
+            join consumer_profiles p on p.user_id = u.id
+            where u.id = %s
+            """,
+            (str(user.id),),
+        ).fetchone()
         with pytest.raises(FixturePersistenceUnsupported, match="issue #11"):
             persist_follow(conn, make_follow(user, company))
         with pytest.raises(FixturePersistenceUnsupported, match="issue #12"):
             persist_notification(conn, make_notification(user))
+    assert row is not None
+    assert row["email"] == user.email
+    assert row["region"] == "US"
+
+
+def test_future_tables_are_in_memory_only(db_url: str) -> None:
+    test_persist_user_round_trip(db_url)
 
 
 def test_failed_observation_fixture_is_not_persisted_as_snapshot(db_url: str) -> None:

@@ -42,4 +42,6 @@ Structured facts: “discloses”, “we found”, “we have not found evidence
 
 `SearchForm`, `FreshnessLabel`, `EvidenceQuote`, `DisclosureRow`, `ChangeCard`, `StatePanel`, `SiteHeader`.
 
-Deferred: `WatchButton`, `CompanyPicker`, `ComparisonMatrix`, `AssistantPanel` (#10+).
+Deferred: `WatchButton`, `CompanyPicker`, `ComparisonMatrix`, `AssistantPanel` (#11+).
+
+Added in #10: `AuthNav` (Sign in / Account from session cookie).

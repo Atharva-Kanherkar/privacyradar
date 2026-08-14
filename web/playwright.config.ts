@@ -23,6 +23,11 @@ export default defineConfig({
         url: `${baseURL}/api/health`,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
+        env: {
+          ...process.env,
+          AUTH_DELIVERY: "fixture",
+          BETTER_AUTH_URL: baseURL,
+        },
       },
   projects: [
     {

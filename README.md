@@ -67,6 +67,8 @@ privacyradar crawl
 
 cd ../web
 echo 'DATABASE_URL=postgresql://'"$USER"'@localhost:5432/privacyradar' > .env.local
+echo 'AUTH_DELIVERY=fixture' >> .env.local
+echo 'BETTER_AUTH_URL=http://127.0.0.1:3000' >> .env.local
 npm install
 npm run dev
 ```

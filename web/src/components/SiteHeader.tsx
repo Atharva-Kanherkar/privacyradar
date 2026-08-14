@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthNav } from "./AuthNav";
 
 const LINKS = [
   { href: "/companies", label: "Companies" },
@@ -27,6 +28,7 @@ export function SiteHeader() {
               {link.label}
             </Link>
           ))}
+          <AuthNav />
         </nav>
         <details className="sm:hidden">
           <summary className="inline-flex min-h-11 min-w-11 cursor-pointer items-center font-sans text-sm">
@@ -42,6 +44,7 @@ export function SiteHeader() {
                 {link.label}
               </Link>
             ))}
+            <AuthNav />
           </nav>
         </details>
       </div>

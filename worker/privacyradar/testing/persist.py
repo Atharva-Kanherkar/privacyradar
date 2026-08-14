@@ -198,10 +198,34 @@ def persist_claim(
 
 
 def persist_user(
-    _conn: psycopg.Connection[dict[str, Any]], user: UserFixture
+    conn: psycopg.Connection[dict[str, Any]], user: UserFixture
 ) -> None:
-    raise FixturePersistenceUnsupported(
-        f"users table is owned by issue #10; cannot persist {user.handle}"
+    conn.execute(
+        """
+        insert into auth_users (id, name, email, email_verified, created_at, updated_at)
+        values (%s, %s, %s, true, %s, %s)
+        """,
+        (
+            str(user.id),
+            user.handle,
+            user.email,
+            user.created_at,
+            user.created_at,
+        ),
+    )
+    conn.execute(
+        """
+        insert into consumer_profiles (user_id, region, created_at, updated_at)
+        values (%s, %s, %s, %s)
+        """,
+        (str(user.id), user.region, user.created_at, user.created_at),
+    )
+    conn.execute(
+        """
+        insert into consent_events (user_id, action)
+        values (%s, 'signup')
+        """,
+        (str(user.id),),
     )
 
 
