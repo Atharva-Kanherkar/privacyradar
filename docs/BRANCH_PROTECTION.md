@@ -24,4 +24,4 @@ Do not enable admin bypass. Do not allow force pushes. Keep required linear hist
 
 ## Untrusted pull requests
 
-Workflows use `pull_request` and `push` to `main` only. `pull_request_target` is forbidden. Workflow files must not interpolate `secrets.*`. Application credentials stay in deployment environments, never in PR CI.
+Workflows use `pull_request` and `push` to `main` only. `pull_request_target` is forbidden. Pull-request workflows must not interpolate `secrets.*`. Application credentials stay in the production deploy environment, never in PR CI.

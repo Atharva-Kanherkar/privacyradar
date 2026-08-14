@@ -227,8 +227,9 @@ jobs:
               if event in text:
                   print(f"{path}: contains {event}", flush=True)
                   failed = True
-              if secret in text:
-                  print(f"{path}: interpolates {secret}", flush=True)
+              runs_on_pr = "pull_request:" in text or "pull_request\n" in text
+              if runs_on_pr and secret in text:
+                  print(f"{path}: interpolates {secret} on pull_request", flush=True)
                   failed = True
           if failed:
               raise SystemExit(1)

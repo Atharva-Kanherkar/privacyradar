@@ -8,6 +8,7 @@ import pytest
 from privacyradar.migrate import (
     DEFAULT_MIGRATIONS_DIR,
     MigrationError,
+    default_migrations_dir,
     discover_migrations,
 )
 
@@ -41,6 +42,11 @@ def test_migration_checksum_is_sha256_of_bytes(tmp_path: Path) -> None:
 def test_discover_migrations_rejects_missing_directory(tmp_path: Path) -> None:
     with pytest.raises(MigrationError, match="does not exist"):
         discover_migrations(tmp_path / "missing")
+
+
+def test_default_migrations_dir_honors_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PRIVACYRADAR_MIGRATIONS_DIR", str(tmp_path))
+    assert default_migrations_dir() == tmp_path
 
 
 def test_discover_migrations_skips_subdirectories(tmp_path: Path) -> None:
