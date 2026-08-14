@@ -14,6 +14,7 @@ The product plan already selected Better Auth with hashed, single-use magic-link
 ## Consequences
 
 - Schema is owned by numbered SQL migrations (`0006`), not a silent Better Auth CLI in production.
+- `AUTH_SECRET` is required in hosted production. Fixture inbox delivery is disabled when `VERCEL_ENV` or Railway production is set.
 - Email delivery is an adapter: fixture inbox in CI, Resend-compatible later (#12).
 - No Google/Apple login until conversion data demands it.
 - Watchlists stay in #11; this ADR only authenticates a consumer and stores region/consent.

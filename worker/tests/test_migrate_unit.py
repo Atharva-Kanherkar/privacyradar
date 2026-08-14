@@ -63,12 +63,20 @@ def test_discover_migrations_rejects_duplicate_versions(tmp_path: Path) -> None:
 
 def test_default_migrations_include_initial_and_observations() -> None:
     found = discover_migrations(DEFAULT_MIGRATIONS_DIR)
-    assert [item.version for item in found] == ["0001", "0002", "0003", "0004", "0005"]
+    assert [item.version for item in found] == [
+        "0001",
+        "0002",
+        "0003",
+        "0004",
+        "0005",
+        "0006",
+    ]
     assert found[0].name == "initial"
     assert found[1].name == "immutable_observations"
     assert found[2].name == "fetch_leases_ssrf"
     assert found[3].name == "taxonomy_extraction"
     assert found[4].name == "publication_corrections"
+    assert found[5].name == "consumer_auth"
     assert found[0].checksum == (
         "5957a7874aaec1741621bfae3fff13f08fc3ca0c9222bb4592e56eac61cb3c8e"
     )
@@ -87,6 +95,6 @@ def test_schema_sql_is_current_head_reference() -> None:
     assert "create table if not exists source_operator_actions" in body
     assert "create table if not exists taxonomy_versions" in body
     assert "create table if not exists extraction_runs" in body
-    assert "create table if not exists publication_revisions" in body
-    assert "create table if not exists published_claims" in body
+    assert "create table if not exists consumer_profiles" in body
+    assert "create table if not exists auth_users" in body
     assert "schema_migrations" not in body
