@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, timedelta
 
 from privacyradar.robots import (
     ROBOTS_CACHE_TTL,

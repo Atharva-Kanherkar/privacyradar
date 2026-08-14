@@ -7,7 +7,7 @@ import os
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from random import Random
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -61,13 +61,16 @@ def _domain_from_url(url: str) -> str:
 def _invoke_fetch(fetch_fn: Any, source: dict[str, Any]) -> FetchResult:
     url = str(source["url"])
     try:
-        return fetch_fn(
-            url,
-            etag=source.get("etag"),
-            last_modified=source.get("last_modified"),
+        return cast(
+            FetchResult,
+            fetch_fn(
+                url,
+                etag=source.get("etag"),
+                last_modified=source.get("last_modified"),
+            ),
         )
     except TypeError:
-        return fetch_fn(url)
+        return cast(FetchResult, fetch_fn(url))
 
 
 def schedule_due_sources(conn: Any, now: datetime) -> int:
