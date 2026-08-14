@@ -44,6 +44,10 @@ def main(argv: list[str] | None = None) -> int:
         "extract",
         help="Backfill OpenAI extraction on snapshots that have no practices yet",
     )
+    sub.add_parser(
+        "eval-extract",
+        help="Run the synthetic extraction golden suite (no live model)",
+    )
 
     args = parser.parse_args(argv)
     if args.cmd == "migrate":
@@ -136,6 +140,18 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "extract":
         for line in extract_missing():
             print(line)
+        return 0
+    if args.cmd == "eval-extract":
+        from privacyradar import eval_runner
+
+        try:
+            eval_report = eval_runner.evaluate_golden()
+        except Exception as exc:
+            print(f"eval-extract failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
+        print(eval_runner.format_report(eval_report))
+        if not eval_runner.gates_pass(eval_report):
+            return 1
         return 0
     return 1
 
