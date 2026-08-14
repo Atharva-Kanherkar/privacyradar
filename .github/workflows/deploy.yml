@@ -41,15 +41,15 @@ jobs:
           node-version: 22
       - name: Install Vercel CLI
         run: npm install -g vercel@54.6.1
-      - name: Pull and deploy production
+      - name: Deploy production on Vercel
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
-          vercel build --prod --token "$VERCEL_TOKEN"
-          vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN"
+          mkdir -p .vercel
+          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+          vercel deploy --prod --yes --token "$VERCEL_TOKEN"
 
   railway:
     name: Deploy worker to Railway
@@ -62,7 +62,9 @@ jobs:
         with:
           ref: ${{ needs.gate.outputs.sha }}
       - name: Install Railway CLI
-        run: curl -fsSL https://railway.com/install.sh | sh
+        run: |
+          curl -fsSL https://railway.com/install.sh | sh
+          echo "$HOME/.railway/bin" >> "$GITHUB_PATH"
       - name: Deploy worker
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
