@@ -50,14 +50,13 @@ class LiveExtractor:
         taxonomy_version: str,
         model: str,
     ) -> list[CandidateClaim]:
-        del taxonomy_version
         if not settings.openai_api_key:
             raise RuntimeError("OPENAI_API_KEY is not set")
         client = OpenAI(api_key=settings.openai_api_key)
         parsed = client.responses.parse(
             model=model,
             instructions=instructions,
-            input=document[:MAX_INPUT_CHARS],
+            input=f"taxonomy_version={taxonomy_version}\n{document[:MAX_INPUT_CHARS]}",
             text_format=LiveExtraction,
         )
         if parsed.output_parsed is None:

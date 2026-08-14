@@ -34,8 +34,12 @@ class GoldenExtractor:
         taxonomy_version: str,
         model: str,
     ) -> list[CandidateClaim]:
-        del instructions, document, taxonomy_version, model
-        return list(self.expected)
+        del instructions, taxonomy_version, model
+        return [
+            claim
+            for claim in self.expected
+            if any(quote.text in document for quote in claim.quotes)
+        ]
 
 
 def _load_expected(path: Path) -> list[CandidateClaim]:
@@ -121,7 +125,7 @@ def evaluate_golden(golden_dir: Path = GOLDEN_DIR) -> dict[str, Any]:
     overall_fn = sum(fn_by.values())
     precision = overall_tp / (overall_tp + overall_fp) if (overall_tp + overall_fp) else 1.0
     recall = overall_tp / (overall_tp + overall_fn) if (overall_tp + overall_fn) else 1.0
-    citation_validity = citation_ok / citations if citations else 1.0
+    citation_validity = citation_ok / citations if citations else 0.0
     unsupported_rate = unsupported / total_valid if total_valid else 0.0
     return {
         "precision_by_category": precision_by,
