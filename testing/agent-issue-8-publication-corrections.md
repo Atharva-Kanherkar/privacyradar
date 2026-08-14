@@ -24,7 +24,7 @@ Consumers only see defensible claims. Extraction output from #7 stays untrusted 
 1. Public `web/src/lib/db.ts` selects change events only in `published` or `corrected`. It never selects `candidate_claims`, `extraction_runs`, or unpublished revisions.
 2. A published claim must resolve to company, source, observation, snapshot, verbatim quote/span, extraction run, publication revision, and timestamps.
 3. Missing quote, stale/wrong offsets, wrong snapshot ownership, invalid taxonomy shape, or `validation_state != valid` cannot become a published claim (service layer and database checks).
-4. Publication revisions, published claims, review actions, and corrections are append-only. Rollback inserts a new revision; it does not UPDATE the old one.
+4. Publication revisions, published claims, and review actions are append-only. Correction **state** may UPDATE, but every transition inserts a `review_actions` row. Rollback inserts a new revision; it does not UPDATE an old revision.
 5. Every publish/reject/rollback/correct action records `actor` matching `^[a-z0-9][a-z0-9:_-]{1,62}$`. Emails and URLs are rejected.
 6. `product_switches.publication = false` refuses publish and rollback (safe feature-off). Existing published rows remain readable.
 7. Fetch failure still does not create a publication. No observation / invalid snapshot → no revision.
@@ -59,7 +59,7 @@ Additive. `0001`–`0004` checksums unchanged.
 - `corrections(id, company_id, target_revision_id, replacement_revision_id, reporter_kind, state, public_note, actor, created_at, resolved_at)` state in (`submitted`,`acknowledged`,`reviewing`,`corrected`,`declined`).
 - `product_switches(key text pk, enabled boolean not null, updated_at)` seed `publication=true`.
 
-Append-only triggers on revisions, published_claims, review_actions, corrections, product_switches (updates of `enabled`/`updated_at` allowed only on `product_switches`).
+Append-only triggers on `publication_revisions`, `published_claims`, and `review_actions`. `corrections` may UPDATE `state`, `replacement_revision_id`, `actor`, `public_note`, and `resolved_at` only; DELETE is forbidden. `product_switches` may UPDATE `enabled` and `updated_at`.
 
 `db/schema.sql` includes these objects. Required-tables CI count includes the five new tables. Ledger count **5**.
 
