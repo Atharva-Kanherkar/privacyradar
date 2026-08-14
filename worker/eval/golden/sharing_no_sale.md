@@ -1,0 +1,3 @@
+# Sharing
+
+We do not sell your personal information to third parties.

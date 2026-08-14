@@ -14,9 +14,9 @@ def test_cli_migrate_help() -> None:
     assert exc.value.code == 0
 
 
-def test_cli_crawl_help() -> None:
+def test_cli_eval_extract_help() -> None:
     with pytest.raises(SystemExit) as exc:
-        main(["crawl", "--help"])
+        main(["eval-extract", "--help"])
     assert exc.value.code == 0
 
 
