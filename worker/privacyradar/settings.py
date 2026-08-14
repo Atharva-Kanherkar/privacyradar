@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     notify_provider: str = "fake"
     notify_from: str = "PrivacyRadar <alerts@privacyradar.local>"
     public_base_url: str = "http://127.0.0.1:3000"
+    assistant_provider: str = "fake"
     resend_api_key: str = ""
     resend_webhook_secret: str = ""
 

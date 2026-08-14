@@ -50,10 +50,23 @@ REQUIRED_TABLES = {
     "catalog_cohorts",
     "company_requests",
     "catalog_health_snapshots",
+    "assistant_usage",
 }
 
 INITIAL_CHECKSUM = "5957a7874aaec1741621bfae3fff13f08fc3ca0c9222bb4592e56eac61cb3c8e"
-HEAD_VERSIONS = ["0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010"]
+HEAD_VERSIONS = [
+    "0001",
+    "0002",
+    "0003",
+    "0004",
+    "0005",
+    "0006",
+    "0007",
+    "0008",
+    "0009",
+    "0010",
+    "0011",
+]
 
 
 def _tables(url: str) -> set[str]:
@@ -82,11 +95,15 @@ def test_migrate_fresh_database_to_head(empty_database_url: str) -> None:
     assert _tables(empty_database_url) >= REQUIRED_TABLES
     ledger = _ledger(empty_database_url)
     assert [row[0] for row in ledger] == HEAD_VERSIONS
-    assert len(ledger) == 10
+    assert len(ledger) == 11
     assert ledger[0][1] == INITIAL_CHECKSUM
 
 
 def test_migrate_fresh_includes_0004(empty_database_url: str) -> None:
+    test_migrate_fresh_database_to_head(empty_database_url)
+
+
+def test_migrate_fresh_includes_0011(empty_database_url: str) -> None:
     test_migrate_fresh_database_to_head(empty_database_url)
 
 
@@ -161,9 +178,7 @@ def test_migrate_failed_file_does_not_record_version(
         migrate(empty_database_url, migrations_dir=tmp_path)
 
     assert "ok_marker" not in _tables(empty_database_url)
-    assert _ledger(empty_database_url) == [
-        ("0001", discover_migrations(tmp_path)[0].checksum)
-    ]
+    assert _ledger(empty_database_url) == [("0001", discover_migrations(tmp_path)[0].checksum)]
 
 
 def test_migrate_upgrades_prototype_schema_preserving_rows(empty_database_url: str) -> None:
@@ -318,9 +333,7 @@ def test_migrate_0001_database_backfills_valid_and_invalid_snapshots(
         current = conn.execute(
             "select current_snapshot_id, health_status from policy_sources"
         ).fetchone()
-        attempts = conn.execute(
-            "select status, error_code from source_attempts"
-        ).fetchall()
+        attempts = conn.execute("select status, error_code from source_attempts").fetchall()
         observations = conn.execute("select count(*) as n from observations").fetchone()
     assert first.observations_created == 0
     assert first.attempts_created == 0
@@ -340,9 +353,7 @@ def test_migrate_0001_database_backfills_valid_and_invalid_snapshots(
     failed_codes = {row["error_code"] for row in attempts if row["status"] == "failed"}
     assert failed_codes == {"timeout"}
     with psycopg.connect(empty_database_url, row_factory=dict_row) as conn:
-        due = conn.execute(
-            "select due_at, current_snapshot_id from policy_sources"
-        ).fetchone()
+        due = conn.execute("select due_at, current_snapshot_id from policy_sources").fetchone()
         jobs = conn.execute("select count(*) as n from fetch_jobs").fetchone()
     assert due is not None
     assert due["due_at"] is not None
@@ -350,9 +361,7 @@ def test_migrate_0001_database_backfills_valid_and_invalid_snapshots(
     assert jobs is not None and jobs["n"] == 0
 
 
-def test_migrate_0002_database_upgrades_to_0003(
-    empty_database_url: str, tmp_path: Path
-) -> None:
+def test_migrate_0002_database_upgrades_to_0003(empty_database_url: str, tmp_path: Path) -> None:
     migrations = Path(__file__).resolve().parents[2] / "db" / "migrations"
     for name in ("0001_initial.sql", "0002_immutable_observations.sql"):
         (tmp_path / name).write_bytes((migrations / name).read_bytes())
@@ -412,7 +421,7 @@ def test_migrate_0002_database_upgrades_to_0003(
         before_observations = observation_count[0]
 
     second = migrate(empty_database_url)
-    assert second == ["0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010"]
+    assert second == ["0003", "0004", "0005", "0006", "0007", "0008", "0009", "0010", "0011"]
     with psycopg.connect(empty_database_url, row_factory=dict_row) as conn:
         source = conn.execute(
             """
@@ -424,9 +433,7 @@ def test_migrate_0002_database_upgrades_to_0003(
         ).fetchone()
         after = conn.execute("select count(*) as n from observations").fetchone()
         jobs = conn.execute("select count(*) as n from fetch_jobs").fetchone()
-        actions = conn.execute(
-            "select count(*) as n from source_operator_actions"
-        ).fetchone()
+        actions = conn.execute("select count(*) as n from source_operator_actions").fetchone()
     assert source is not None
     assert str(source["current_snapshot_id"]) == "cccccccc-cccc-cccc-cccc-cccccccccccc"
     assert source["due_at"] is not None

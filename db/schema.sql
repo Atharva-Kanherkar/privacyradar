@@ -1,5 +1,5 @@
 -- Current-head schema reference. Apply with `privacyradar migrate`.
--- Docker-compose may bootstrap from this file; migrate still records 0001–0010
+-- Docker-compose may bootstrap from this file; migrate still records 0001–0011
 -- and installs append-only triggers. This file matches the end state of
 -- numbered migrations (tables and functions; some triggers are migration-only).
 
@@ -418,6 +418,10 @@ insert into product_switches (key, enabled)
 values ('notifications', true)
 on conflict (key) do nothing;
 
+insert into product_switches (key, enabled)
+values ('assistant', false)
+on conflict (key) do nothing;
+
 create or replace function privacyradar_reject_mutation()
 returns trigger
 language plpgsql
@@ -798,5 +802,15 @@ create table if not exists catalog_health_snapshots (
   fetch_success_pct    numeric not null,
   evidence_valid_pct   numeric not null,
   created_at           timestamptz not null default now()
+);
+
+create table if not exists assistant_usage (
+  identity_hash  text not null,
+  day            date not null default (timezone('utc', now()))::date,
+  count          integer not null default 0,
+  updated_at     timestamptz not null default now(),
+  primary key (identity_hash, day),
+  check (count >= 0),
+  check (char_length(identity_hash) = 64)
 );
 
