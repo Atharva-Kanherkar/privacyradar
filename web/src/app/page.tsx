@@ -1,10 +1,19 @@
 import Link from "next/link";
-import { BellRing, FileSearch, Quote } from "lucide-react";
+import { ArrowRight, BellRing, FileSearch, Quote } from "lucide-react";
 import { ChangeCard } from "@/components/ChangeCard";
 import { CompanyCard } from "@/components/CompanyCard";
+import { CompanyLogo } from "@/components/CompanyLogo";
+import { DataTypeIcon } from "@/components/DataTypeIcon";
 import { SearchForm } from "@/components/SearchForm";
 import { StatePanel } from "@/components/StatePanel";
-import { loadCompanies, loadEvents, mapCompanyDataTypes } from "@/lib/db";
+import { attributeMeta, SENSITIVE } from "@/lib/data-categories";
+import {
+  getCatalogStats,
+  getSpotlightClaim,
+  loadCompanies,
+  loadEvents,
+  mapCompanyDataTypes,
+} from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -26,46 +35,116 @@ const STEPS = [
   },
 ];
 
+const QUICK_SLUGS = ["google", "meta", "amazon", "spotify"];
+
 export default async function Home() {
-  const [events, companies, dataTypes] = await Promise.all([
+  const [events, companies, dataTypes, spotlight, stats] = await Promise.all([
     loadEvents(6),
     loadCompanies(),
     // null = lookup failed; cards must say "unavailable", not "nothing found".
     mapCompanyDataTypes().catch(() => null),
+    getSpotlightClaim(),
+    getCatalogStats(),
   ]);
+
+  const quickLinks = companies.ok
+    ? QUICK_SLUGS.map((slug) =>
+        companies.data.find((company) => company.slug === slug),
+      ).filter((company) => company !== undefined)
+    : [];
+  const spotlightMeta = spotlight
+    ? attributeMeta(
+        spotlight.attribute in SENSITIVE ? "sensitive" : "data_collected",
+        spotlight.attribute,
+      )
+    : null;
 
   return (
     <main id="main" className="mx-auto max-w-6xl overflow-x-hidden px-6 py-14">
-      <section className="mx-auto max-w-3xl text-center">
-        <p className="inline-flex items-center rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
-          Evidence-backed policy watch
-        </p>
-        <h1 className="mt-4 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-          What do the services you use disclose about your data?
-        </h1>
-        <p className="mx-auto mt-4 max-w-xl text-lg text-[var(--muted)]">
-          Your voice. Your location. Your messages. See exactly what each
-          company says it takes, with the receipts, and get told when it
-          changes.
-        </p>
-        <div className="mx-auto mt-6 flex max-w-xl justify-center">
+      <section className="grid items-center gap-10 lg:grid-cols-[1.15fr_1fr]">
+        <div>
+          <p className="inline-flex items-center rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
+            Evidence-backed policy watch
+          </p>
+          <h1 className="mt-4 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+            What do the services you use disclose about your data?
+          </h1>
+          <p className="mt-4 max-w-xl text-lg text-[var(--muted)]">
+            Your voice. Your location. Your messages. See exactly what each
+            company says it takes, straight from its own privacy policy.
+          </p>
           <SearchForm label="Search a company" />
+          {quickLinks.length > 0 ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-[var(--muted)]">Try:</span>
+              {quickLinks.map((company) => (
+                <Link
+                  key={company.slug}
+                  href={`/companies/${company.slug}`}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--rule)] bg-[var(--surface)] py-1 pl-1.5 pr-3.5 text-sm font-medium transition-colors hover:border-[var(--accent)]"
+                >
+                  <CompanyLogo
+                    name={company.name}
+                    website={company.website}
+                    size={28}
+                    className="rounded-full"
+                  />
+                  {company.name}
+                </Link>
+              ))}
+            </div>
+          ) : null}
+          {stats ? (
+            <p className="mt-6 text-sm text-[var(--muted)]">
+              <strong className="font-semibold text-[var(--ink)]">
+                {stats.companies} companies
+              </strong>{" "}
+              watched ·{" "}
+              <strong className="font-semibold text-[var(--ink)]">
+                {stats.claims} disclosures
+              </strong>{" "}
+              published, every one backed by a quote
+            </p>
+          ) : null}
         </div>
-      </section>
 
-      <section aria-label="How it works" className="mt-16 grid gap-4 sm:grid-cols-3">
-        {STEPS.map((step) => (
-          <div
-            key={step.title}
-            className="rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-5"
+        {spotlight && spotlightMeta ? (
+          <Link
+            href={`/companies/${spotlight.slug}`}
+            className="group relative rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--accent)] hover:shadow-md"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
-              <step.icon size={18} aria-hidden="true" />
-            </span>
-            <h2 className="mt-3 text-base font-semibold">{step.title}</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">{step.text}</p>
-          </div>
-        ))}
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Real example, from the actual policy
+            </p>
+            <div className="mt-4 flex items-center gap-3">
+              <CompanyLogo
+                name={spotlight.name}
+                website={spotlight.website}
+                size={44}
+              />
+              <div>
+                <p className="text-lg font-semibold leading-tight">
+                  {spotlight.name}
+                </p>
+                <p className="flex items-center gap-1.5 text-sm text-[var(--danger)]">
+                  <DataTypeIcon attribute={spotlight.attribute} size={14} />
+                  {spotlightMeta.label}
+                </p>
+              </div>
+            </div>
+            <blockquote className="mt-4 border-l-2 border-[var(--accent)] pl-3 text-sm italic leading-relaxed text-[var(--muted)]">
+              &ldquo;{spotlight.quote}&rdquo;
+            </blockquote>
+            <p className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--accent)]">
+              See everything {spotlight.name} takes
+              <ArrowRight
+                size={15}
+                aria-hidden="true"
+                className="transition-transform group-hover:translate-x-0.5"
+              />
+            </p>
+          </Link>
+        ) : null}
       </section>
 
       <section className="mt-16">
@@ -127,6 +206,21 @@ export default async function Home() {
             ))}
           </ol>
         )}
+      </section>
+
+      <section aria-label="How it works" className="mt-16 grid gap-4 sm:grid-cols-3">
+        {STEPS.map((step) => (
+          <div
+            key={step.title}
+            className="rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-5"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
+              <step.icon size={18} aria-hidden="true" />
+            </span>
+            <h2 className="mt-3 text-base font-semibold">{step.title}</h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">{step.text}</p>
+          </div>
+        ))}
       </section>
     </main>
   );

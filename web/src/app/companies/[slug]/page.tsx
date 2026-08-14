@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ChangeCard } from "@/components/ChangeCard";
 import { ChatAssistant } from "@/components/ChatAssistant";
 import { ClaimCard } from "@/components/ClaimCard";
+import { CompanyLogo } from "@/components/CompanyLogo";
 import { DisclosureRow } from "@/components/DisclosureRow";
 import { FreshnessLabel } from "@/components/FreshnessLabel";
 import { StatePanel } from "@/components/StatePanel";
@@ -107,9 +108,16 @@ export default async function CompanyPage({
         {company.category}
       </p>
       <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-semibold tracking-tight">{company.name}</h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+        <div className="flex items-start gap-4">
+          <CompanyLogo
+            name={company.name}
+            website={company.website}
+            size={56}
+            className="mt-1"
+          />
+          <div>
+            <h1 className="text-4xl font-semibold tracking-tight">{company.name}</h1>
+            <p className="mt-2 text-sm text-[var(--muted)]">
             {company.privacy_url ? (
               <a href={company.privacy_url} className="underline" rel="noreferrer">
                 Current privacy policy
@@ -124,7 +132,8 @@ export default async function CompanyPage({
               lastCheckedAt={company.last_verified_at}
               health={company.source_health}
             />
-          </p>
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <WatchButton

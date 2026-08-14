@@ -11,10 +11,11 @@ test.describe("Assistant", () => {
       page.getByText("We collect your email address to create an account.").first(),
     ).toBeVisible();
 
-    const chatInput = page.locator("#assistant-input");
-    if ((await chatInput.count()) > 0) {
-      // A model key is configured: the chat panel renders with suggestions.
-      await expect(chatInput).toBeVisible();
+    const trigger = page.getByRole("button", { name: "Ask about this policy" });
+    if ((await trigger.count()) > 0) {
+      // A model key is configured: the chat opens as a sidebar with suggestions.
+      await trigger.click();
+      await expect(page.locator("#assistant-input")).toBeVisible();
       await expect(
         page.getByRole("button", { name: "Do they sell or share my data?" }),
       ).toBeVisible();

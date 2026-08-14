@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import type { CompanyRow } from "@/lib/db";
 import { SENSITIVE } from "@/lib/data-categories";
+import { CompanyLogo } from "./CompanyLogo";
 import { DataTypeChip } from "./DataTypeChip";
 import { FreshnessLabel } from "./FreshnessLabel";
 
@@ -23,7 +24,7 @@ export function CompanyCard({
 }: {
   company: Pick<
     CompanyRow,
-    "slug" | "name" | "category" | "last_verified_at" | "source_health"
+    "slug" | "name" | "category" | "website" | "last_verified_at" | "source_health"
   >;
   /** null means the data-type lookup failed, which is not an empty review. */
   dataTypes: string[] | null;
@@ -37,9 +38,12 @@ export function CompanyCard({
       className="group flex flex-col gap-3 rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--accent)] hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="text-lg font-semibold tracking-tight">{company.name}</h3>
-          <p className="text-xs text-[var(--muted)]">{company.category}</p>
+        <div className="flex items-center gap-3">
+          <CompanyLogo name={company.name} website={company.website} size={40} />
+          <div>
+            <h3 className="text-lg font-semibold tracking-tight">{company.name}</h3>
+            <p className="text-xs text-[var(--muted)]">{company.category}</p>
+          </div>
         </div>
         <ArrowUpRight
           size={18}
