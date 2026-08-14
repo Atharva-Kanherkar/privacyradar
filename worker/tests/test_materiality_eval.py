@@ -57,4 +57,5 @@ def test_public_sql_ignores_unpublished_and_candidates() -> None:
     text = source.read_text()
     assert "candidate_claims" not in text
     assert "extraction_runs" not in text
+    assert "publication_state = 'published'" in text
     assert "publication_state in ('published', 'corrected')" in text

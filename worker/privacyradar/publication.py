@@ -426,12 +426,23 @@ def rollback_revision(conn: Any, revision_id: str, *, actor: str, reason: str) -
     else:
         restore_run = str(target["extraction_run_id"])
         restore_event = str(target["change_event_id"]) if target["change_event_id"] else None
-    return publish_run(
+    result = publish_run(
         conn,
         restore_run,
         actor=actor,
         change_event_id=restore_event,
     )
+    abandoned = str(target["change_event_id"]) if target["change_event_id"] else None
+    if abandoned and abandoned != restore_event:
+        conn.execute(
+            """
+            update change_events
+            set publication_state = 'corrected'
+            where id = %s and publication_state = 'published'
+            """,
+            (abandoned,),
+        )
+    return result
 
 
 def submit_correction(

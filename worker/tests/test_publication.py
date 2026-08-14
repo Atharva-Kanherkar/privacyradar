@@ -607,6 +607,14 @@ def test_rollback_restores_prior_change_event(db_url: str) -> None:
         assert current is not None
         assert str(current["change_event_id"]) == event_a
         assert first.revision_id != second.revision_id
+        state_a = conn.execute(
+            "select publication_state from change_events where id = %s", (event_a,)
+        ).fetchone()
+        state_b = conn.execute(
+            "select publication_state from change_events where id = %s", (event_b,)
+        ).fetchone()
+        assert state_a is not None and state_a["publication_state"] == "published"
+        assert state_b is not None and state_b["publication_state"] == "corrected"
 
 
 def test_normalized_quote_can_publish(db_url: str) -> None:

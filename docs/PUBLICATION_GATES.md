@@ -11,4 +11,4 @@ Issue: https://github.com/Atharva-Kanherkar/privacyradar/issues/8
 
 `privacyradar eval-materiality` and `pytest tests/test_materiality_eval.py` fail the build when a gate is missed. Live OpenAI is not used.
 
-Public `change_events` reads are limited to `publication_state in ('published', 'corrected')`.
+Public home and RSS list `publication_state = 'published'` only. Company change history also includes `corrected` replacements.

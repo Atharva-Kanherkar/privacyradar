@@ -80,7 +80,7 @@ export async function listEvents(limit = 40): Promise<ChangeEvent[]> {
       from change_events e
       join companies c on c.id = e.company_id
       where e.materiality = 'material'
-        and e.publication_state in ('published', 'corrected')
+        and e.publication_state = 'published'
       order by e.published_at desc
       limit ${limit}
     `;
