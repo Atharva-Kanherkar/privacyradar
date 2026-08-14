@@ -120,6 +120,7 @@ def db_url(migrated_database_url: str) -> str:
         conn.execute(
             """
             truncate
+              assistant_usage,
               catalog_health_snapshots,
               company_requests,
               notification_fixture_inbox,
@@ -155,6 +156,14 @@ def db_url(migrated_database_url: str) -> str:
               policy_sources,
               companies
             restart identity cascade
+            """
+        )
+        conn.execute("update product_switches set enabled = false where key = 'assistant'")
+        conn.execute(
+            """
+            update product_switches
+            set enabled = true
+            where key in ('publication', 'notifications')
             """
         )
     return migrated_database_url

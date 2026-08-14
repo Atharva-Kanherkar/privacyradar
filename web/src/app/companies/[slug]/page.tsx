@@ -5,6 +5,7 @@ import { ChangeCard } from "@/components/ChangeCard";
 import { DisclosureRow } from "@/components/DisclosureRow";
 import { FreshnessLabel } from "@/components/FreshnessLabel";
 import { StatePanel } from "@/components/StatePanel";
+import { AssistantPanel } from "@/components/AssistantPanel";
 import { WatchButton } from "@/components/WatchButton";
 import { loadCompany } from "@/lib/db";
 import { getSessionFromCookies } from "@/lib/session";
@@ -34,7 +35,7 @@ export default async function CompanyPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ watch?: string }>;
+  searchParams: Promise<{ watch?: string; ask?: string }>;
 }) {
   const { slug } = await params;
   const query = await searchParams;
@@ -178,6 +179,7 @@ export default async function CompanyPage({
           Public correction history
         </Link>
       </p>
+      <AssistantPanel slug={company.slug} askStatus={query.ask} />
     </main>
   );
 }

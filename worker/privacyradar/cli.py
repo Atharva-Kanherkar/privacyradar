@@ -108,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("catalog-validate", help="Validate catalog.yaml without writing")
     health = sub.add_parser("catalog-health", help="Print catalog health and the expansion gate")
     health.add_argument("--record", action="store_true")
+    sub.add_parser("eval-assistant", help="Run the fake cited-assistant golden eval")
 
     args = parser.parse_args(argv)
     if args.cmd == "migrate":
@@ -410,6 +411,14 @@ def main(argv: list[str] | None = None) -> int:
         for key, value in catalog_health.items():
             print(f"{key}={value}")
         return 0
+    if args.cmd == "eval-assistant":
+        from privacyradar.assistant import run_eval
+
+        with connect() as conn:
+            eval_report = run_eval(conn)
+        for key, value in eval_report.items():
+            print(f"{key}={value}")
+        return 0 if eval_report["gate"] == "pass" else 1
     return 1
 
 
