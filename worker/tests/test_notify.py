@@ -282,13 +282,35 @@ def test_webhook_rejects_bad_signature_and_replay(db_url: str) -> None:
             svix_timestamp=str(int(datetime.now(UTC).timestamp())),
             svix_signature="v1,not-a-real-signature",
         )
+    user = make_user(handle="hook-replay")
     with _connect(db_url) as conn:
+        seed_public_fixtures(conn)
+        persist_user(conn, user)
+        event = conn.execute(
+            "select id from change_events where publication_state = 'published' limit 1"
+        ).fetchone()
+        assert event is not None
+        persist_notification(conn, make_notification(user, event_id=event["id"]))
+        boxed = conn.execute(
+            "select id from notification_outbox where user_id = %s",
+            (str(user.id),),
+        ).fetchone()
+        assert boxed is not None
+        conn.execute(
+            """
+            insert into notification_deliveries (
+              outbox_id, provider, provider_message_id, state
+            )
+            values (%s, 'fake', 'msg_1', 'sent')
+            """,
+            (str(boxed["id"]),),
+        )
         apply_provider_event(
             conn,
             event_type="email.bounced",
             provider_event_id="evt_1",
             provider_message_id="msg_1",
-            to_email="a@fixtures.privacyradar.test",
+            to_email=user.email,
         )
         conn.commit()
         with pytest.raises(NotifyError, match="webhook_replay"):
@@ -297,7 +319,7 @@ def test_webhook_rejects_bad_signature_and_replay(db_url: str) -> None:
                 event_type="email.bounced",
                 provider_event_id="evt_1",
                 provider_message_id="msg_1",
-                to_email="a@fixtures.privacyradar.test",
+                to_email=user.email,
             )
 
 
@@ -434,6 +456,44 @@ def test_correction_enqueues_follow_up_revision(db_url: str) -> None:
     assert rows[1]["state"] == "sent"
     assert len(inbox) == 2
     assert "Correction" in inbox[1]["subject"]
+
+
+def test_correction_respects_unfollow_before_send(db_url: str) -> None:
+    from privacyradar.watches import unfollow
+
+    user = make_user(handle="corr-unf")
+    with _connect(db_url) as conn:
+        seed_public_fixtures(conn)
+        persist_user(conn, user)
+        company_id, _, _ = _signal_ids(conn)
+        follow(conn, user_id=str(user.id), company_id=company_id, source="company_page")
+        event_id = _pending_event(conn, "Then unfollow correction")
+        publish_event(conn, event_id, actor="cli:local")
+        run_fanout(conn)
+        run_deliver(conn)
+        unfollow(conn, user_id=str(user.id), company_id=company_id)
+        conn.execute(
+            "update change_events set publication_state = 'corrected' where id = %s",
+            (event_id,),
+        )
+        enqueue_fanout(conn, event_id, kind="correction")
+        run_fanout(conn)
+        run_deliver(conn)
+        conn.commit()
+        rows = conn.execute(
+            """
+            select revision, state from notification_outbox
+            where event_id = %s order by revision
+            """,
+            (event_id,),
+        ).fetchall()
+        inbox = conn.execute(
+            "select count(*) as n from notification_fixture_inbox where email_hash = %s",
+            (email_hash(user.email),),
+        ).fetchone()
+    assert [row["revision"] for row in rows] == [1, 2]
+    assert rows[1]["state"] == "cancelled"
+    assert inbox is not None and inbox["n"] == 1
 
 
 def test_notifications_switch_off_skips_send(db_url: str) -> None:

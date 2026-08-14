@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import logging
 import os
+from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import uuid4
+
+from psycopg.errors import UniqueViolation
 
 from privacyradar.notify_mail import (
     NotifyError,
@@ -318,26 +321,30 @@ def _deliver_one(conn: Any, row: dict[str, Any], provider: Any) -> bool:
         _finish(conn, str(row["id"]), "cancelled")
         return False
     email = _email_for_user(conn, str(row["user_id"]))
-    if str(row["kind"]) == "publish":
-        ok, state, _when = _eligible_for_publish(
-            conn,
-            user_id=str(row["user_id"]),
-            company_id=str(event["company_id"]),
-            email=email,
-        )
-        if not ok:
-            _finish(conn, str(row["id"]), state)
-            return False
-        if event["publication_state"] != "published" or event["materiality"] != "material":
-            _finish(conn, str(row["id"]), "cancelled")
-            return False
-    else:
-        if not email or _suppressed(conn, email):
-            _finish(conn, str(row["id"]), "suppressed")
-            return False
-        if _preference(conn, str(row["user_id"]))["frequency"] == "unsubscribed":
-            _finish(conn, str(row["id"]), "cancelled")
-            return False
+    ok, state, _when = _eligible_for_publish(
+        conn,
+        user_id=str(row["user_id"]),
+        company_id=str(event["company_id"]),
+        email=email,
+    )
+    if not ok:
+        _finish(conn, str(row["id"]), state)
+        return False
+    if str(row["kind"]) == "publish" and (
+        event["publication_state"] != "published" or event["materiality"] != "material"
+    ):
+        _finish(conn, str(row["id"]), "cancelled")
+        return False
+    already = conn.execute(
+        """
+        select 1 from notification_deliveries
+        where outbox_id = %s and state = 'sent'
+        """,
+        (str(row["id"]),),
+    ).fetchone()
+    if already:
+        _finish(conn, str(row["id"]), "sent")
+        return True
     assert email is not None
     token = sign_unsub_token(user_id=str(row["user_id"]))
     rendered = render_alert(
@@ -350,19 +357,25 @@ def _deliver_one(conn: Any, row: dict[str, Any], provider: Any) -> bool:
         data_types_added=list(event["data_types_added"] or []),
     )
     try:
-        result = provider.send(conn, to_email=email, rendered=rendered)
+        result = provider.send(
+            conn,
+            to_email=email,
+            rendered=rendered,
+            idempotency_key=str(row["id"]),
+        )
     except NotifyError:
         _retry_or_fail(conn, row)
         return False
-    conn.execute(
-        """
-        insert into notification_deliveries (
-          outbox_id, provider, provider_message_id, state
+    with suppress(UniqueViolation):
+        conn.execute(
+            """
+            insert into notification_deliveries (
+              outbox_id, provider, provider_message_id, state
+            )
+            values (%s, %s, %s, 'sent')
+            """,
+            (str(row["id"]), result.provider, result.provider_message_id),
         )
-        values (%s, %s, %s, 'sent')
-        """,
-        (str(row["id"]), result.provider, result.provider_message_id),
-    )
     _finish(conn, str(row["id"]), "sent")
     logger.info(
         "notification sent",
@@ -491,20 +504,21 @@ def apply_provider_event(
         ).fetchone()
         if match and match["outbox_id"]:
             outbox_id = str(match["outbox_id"])
-    conn.execute(
-        """
-        insert into notification_deliveries (
-          outbox_id, provider, provider_message_id, provider_event_id, state
-        )
-        values (%s, 'resend', %s, %s, %s)
-        """,
-        (outbox_id, provider_message_id or None, provider_event_id, state),
-    )
-    if reason and outbox_id:
+    if outbox_id:
         conn.execute(
-            "update notification_outbox set state = 'suppressed' where id = %s",
-            (outbox_id,),
+            """
+            insert into notification_deliveries (
+              outbox_id, provider, provider_message_id, provider_event_id, state
+            )
+            values (%s, 'resend', %s, %s, %s)
+            """,
+            (outbox_id, provider_message_id or None, provider_event_id, state),
         )
+        if reason:
+            conn.execute(
+                "update notification_outbox set state = 'suppressed' where id = %s",
+                (outbox_id,),
+            )
     if reason and to_email:
         conn.execute(
             """

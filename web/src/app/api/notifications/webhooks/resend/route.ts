@@ -22,7 +22,10 @@ function fixtureWebhook(request: NextRequest): boolean {
 export async function POST(request: NextRequest) {
   const body = await request.text();
   if (!fixtureWebhook(request)) {
-    const secret = process.env.RESEND_WEBHOOK_SECRET || "";
+    const secret = process.env.RESEND_WEBHOOK_SECRET;
+    if (!secret) {
+      return NextResponse.json({ error: "invalid_webhook" }, { status: 400 });
+    }
     const ok = verifySvixSignature({
       secret,
       body,
@@ -88,16 +91,18 @@ export async function POST(request: NextRequest) {
     `;
     outboxId = matched[0]?.outbox_id ?? null;
   }
-  await sql`
-    insert into notification_deliveries (
-      outbox_id, provider, provider_message_id, provider_event_id, state
-    )
-    values (${outboxId}, 'resend', ${emailId || null}, ${providerEventId}, ${state})
-  `;
-  if (reason && outboxId) {
+  if (outboxId) {
     await sql`
-      update notification_outbox set state = 'suppressed' where id = ${outboxId}::uuid
+      insert into notification_deliveries (
+        outbox_id, provider, provider_message_id, provider_event_id, state
+      )
+      values (${outboxId}, 'resend', ${emailId || null}, ${providerEventId}, ${state})
     `;
+    if (reason) {
+      await sql`
+        update notification_outbox set state = 'suppressed' where id = ${outboxId}::uuid
+      `;
+    }
   }
   if (reason && toEmail) {
     await sql`

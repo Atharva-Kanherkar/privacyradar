@@ -172,7 +172,9 @@ class FakeProvider:
         *,
         to_email: str,
         rendered: RenderedAlert,
+        idempotency_key: str = "",
     ) -> SendResult:
+        del idempotency_key
         conn.execute(
             """
             insert into notification_fixture_inbox (
@@ -192,15 +194,21 @@ class ResendProvider:
         *,
         to_email: str,
         rendered: RenderedAlert,
+        idempotency_key: str = "",
     ) -> SendResult:
         del conn
         if settings.notify_provider != "resend":
             raise NotifyError("resend_disabled")
         if not settings.resend_api_key:
             raise NotifyError("missing_resend_key")
+        if not idempotency_key:
+            raise NotifyError("missing_idempotency_key")
         response = httpx.post(
             RESEND_API,
-            headers={"Authorization": f"Bearer {settings.resend_api_key}"},
+            headers={
+                "Authorization": f"Bearer {settings.resend_api_key}",
+                "Idempotency-Key": idempotency_key,
+            },
             json={
                 "from": settings.notify_from,
                 "to": [to_email],

@@ -724,7 +724,7 @@ create index if not exists notification_outbox_claim_idx
 
 create table if not exists notification_deliveries (
   id                   uuid primary key default gen_random_uuid(),
-  outbox_id            uuid references notification_outbox(id) on delete cascade,
+  outbox_id            uuid not null references notification_outbox(id) on delete cascade,
   provider             text not null,
   provider_message_id  text,
   provider_event_id    text,
@@ -761,4 +761,3 @@ create table if not exists notification_fixture_inbox (
 
 create index if not exists notification_fixture_inbox_hash_idx
   on notification_fixture_inbox (email_hash, created_at desc);
-
