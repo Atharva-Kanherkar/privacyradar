@@ -14,9 +14,15 @@ def test_cli_migrate_help() -> None:
     assert exc.value.code == 0
 
 
-def test_cli_crawl_help() -> None:
+def test_cli_eval_extract_help() -> None:
     with pytest.raises(SystemExit) as exc:
-        main(["crawl", "--help"])
+        main(["eval-extract", "--help"])
+    assert exc.value.code == 0
+
+
+def test_cli_extract_observation_help() -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(["extract-observation", "--help"])
     assert exc.value.code == 0
 
 
@@ -61,6 +67,13 @@ def test_cli_migrate_and_seed_fixtures(
     stats_out = capsys.readouterr().out
     assert "overdue_sources=" in stats_out
     assert "postgresql://" not in stats_out
+    assert main(["eval-extract"]) == 0
+    eval_out = capsys.readouterr().out
+    assert "citation_validity=" in eval_out
+    assert "n_fixtures=" in eval_out
+    assert "postgresql://" not in eval_out
+    assert "OPENAI" not in eval_out
+    assert "placeholder and does not describe collection" not in eval_out
 
 
 def test_cli_migrate_unavailable_database_exits_nonzero(
@@ -90,4 +103,15 @@ def test_cli_seed_fixtures_unavailable_database_exits_nonzero(
     assert main(["seed-fixtures"]) == 1
     err = capsys.readouterr().err
     assert "seed-fixtures failed" in err
-    assert "postgresql://127.0.0.1:1/none" not in err
+    assert "postgresql://" not in err
+
+
+def test_cli_extract_observation_without_api_key_exits_nonzero(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(settings, "openai_api_key", "")
+    assert main(["extract-observation", "00000000-0000-0000-0000-000000000000"]) == 1
+    err = capsys.readouterr().err
+    assert "extract-observation failed" in err
+    assert "sk-" not in err
+    assert "OPENAI_API_KEY" not in err

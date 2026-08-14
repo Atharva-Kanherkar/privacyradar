@@ -44,6 +44,15 @@ def main(argv: list[str] | None = None) -> int:
         "extract",
         help="Backfill OpenAI extraction on snapshots that have no practices yet",
     )
+    sub.add_parser(
+        "eval-extract",
+        help="Run the synthetic extraction golden suite (no live model)",
+    )
+    extract_obs = sub.add_parser(
+        "extract-observation",
+        help="Extract candidate claims for one observation (live model if keyed)",
+    )
+    extract_obs.add_argument("observation_id")
 
     args = parser.parse_args(argv)
     if args.cmd == "migrate":
@@ -136,6 +145,39 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "extract":
         for line in extract_missing():
             print(line)
+        return 0
+    if args.cmd == "eval-extract":
+        from privacyradar import eval_runner
+
+        try:
+            eval_report = eval_runner.evaluate_golden()
+        except Exception as exc:
+            print(f"eval-extract failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
+        print(eval_runner.format_report(eval_report))
+        if not eval_runner.gates_pass(eval_report):
+            return 1
+        return 0
+    if args.cmd == "extract-observation":
+        from privacyradar.extract import extract_observation
+        from privacyradar.extract_live import default_extractor
+
+        try:
+            extractor = default_extractor()
+            with connect() as conn:
+                outcome = extract_observation(conn, args.observation_id, extractor)
+                conn.commit()
+        except Exception as exc:
+            print(f"extract-observation failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
+        if outcome is None:
+            print("extract-observation refused")
+            return 1
+        print(
+            f"run_id={outcome.run_id} n_claims={outcome.n_claims} "
+            f"n_unsupported={outcome.n_unsupported} latency_ms={outcome.latency_ms} "
+            f"cost_usd={outcome.cost_usd} model={outcome.model}"
+        )
         return 0
     return 1
 
