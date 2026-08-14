@@ -50,6 +50,7 @@ create table if not exists publication_revisions (
   observation_id      uuid not null references observations(id) on delete restrict,
   extraction_run_id   uuid not null references extraction_runs(id) on delete restrict,
   change_event_id     uuid references change_events(id) on delete restrict,
+  rolls_back_id       uuid references publication_revisions(id) on delete restrict,
   revision_n          integer not null,
   state               text not null,
   actor               text not null,

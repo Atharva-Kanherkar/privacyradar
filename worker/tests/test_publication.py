@@ -617,6 +617,65 @@ def test_rollback_restores_prior_change_event(db_url: str) -> None:
         assert state_b is not None and state_b["publication_state"] == "corrected"
 
 
+def test_rollback_only_revision_clears_current(db_url: str) -> None:
+    from psycopg.types.json import Json
+
+    company_id, observation_id, run_id = _seed_run(db_url, slug="sole-roll-co")
+    with _connect(db_url) as conn:
+        source = conn.execute(
+            "select id from policy_sources where company_id = %s", (company_id,)
+        ).fetchone()
+        snap = conn.execute(
+            "select snapshot_id from observations where id = %s", (observation_id,)
+        ).fetchone()
+        assert source is not None and snap is not None
+        event = conn.execute(
+            """
+            insert into change_events (
+              company_id, source_id, from_snapshot, to_snapshot,
+              materiality, headline, summary, quotes, publication_state
+            )
+            values (%s, %s, %s, %s, 'material', 'Only pub', 's', %s, 'review_pending')
+            returning id
+            """,
+            (
+                company_id,
+                str(source["id"]),
+                str(snap["snapshot_id"]),
+                str(snap["snapshot_id"]),
+                Json([{"text": QUOTE, "section": "Privacy"}]),
+            ),
+        ).fetchone()
+        assert event is not None
+        published = publish_run(
+            conn, run_id, actor="cli:local", change_event_id=str(event["id"])
+        )
+        rollback_revision(conn, published.revision_id, actor="cli:local", reason="bad_rev")
+        conn.commit()
+        current = conn.execute(
+            """
+            select count(*) as n
+            from publication_revisions pr
+            where pr.company_id = %s
+              and pr.state = 'published'
+              and not exists (
+                select 1 from publication_revisions rb where rb.rolls_back_id = pr.id
+              )
+            """,
+            (company_id,),
+        ).fetchone()
+        state = conn.execute(
+            "select publication_state from change_events where id = %s",
+            (str(event["id"]),),
+        ).fetchone()
+        marker = conn.execute(
+            "select rolls_back_id from publication_revisions where state = 'rolled_back'"
+        ).fetchone()
+        assert current is not None and current["n"] == 0
+        assert state is not None and state["publication_state"] == "corrected"
+        assert marker is not None and str(marker["rolls_back_id"]) == published.revision_id
+
+
 def test_normalized_quote_can_publish(db_url: str) -> None:
     _, _, run_id = _seed_run(db_url, slug="norm-quote-co")
     with _connect(db_url) as conn:

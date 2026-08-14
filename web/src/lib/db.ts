@@ -326,10 +326,17 @@ export async function listPublishedClaims(
     join publication_revisions pr on pr.id = pc.revision_id
     where pr.company_id = ${companyId}::uuid
       and pr.state = 'published'
+      and not exists (
+        select 1 from publication_revisions rb where rb.rolls_back_id = pr.id
+      )
       and pr.revision_n = (
-        select coalesce(max(revision_n), 0)
-        from publication_revisions
-        where company_id = ${companyId}::uuid and state = 'published'
+        select coalesce(max(pr2.revision_n), 0)
+        from publication_revisions pr2
+        where pr2.company_id = ${companyId}::uuid
+          and pr2.state = 'published'
+          and not exists (
+            select 1 from publication_revisions rb where rb.rolls_back_id = pr2.id
+          )
       )
   `;
 }
