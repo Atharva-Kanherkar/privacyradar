@@ -44,7 +44,7 @@ Additive. Ledger **9**. Required public tables **38**.
 ## Functional behavior
 
 - `GET /companies/request` explains that a nomination is not monitoring.
-- `POST /companies/request` (form: name, website, category) inserts `requested` or `duplicate`. 303 to `/companies/request?status=received` or `duplicate`.
+- `POST /companies/request/submit` (form: name, website, category) inserts `requested` or `duplicate`. 303 to `/companies/request?status=received` or `duplicate`. Next.js cannot colocate `page.tsx` and `route.ts`; this matches `/radar/settings/update`.
 - YAML catalog may include extra official companies in cohort `c1`. Seed skips `c1` while disabled.
 - `privacyradar catalog-validate` exits 1 on invalid YAML.
 - `privacyradar catalog-health` prints counts: companies, sources, healthy, degraded, quarantined, fetch_success_pct, evidence_valid_pct, gate=`stop` until two cycles meet ≥95% fetch success and ≥98% evidence-validation.
