@@ -74,6 +74,14 @@ def test_cli_migrate_and_seed_fixtures(
     assert "postgresql://" not in eval_out
     assert "OPENAI" not in eval_out
     assert "placeholder and does not describe collection" not in eval_out
+    assert main(["eval-materiality"]) == 0
+    mat_out = capsys.readouterr().out
+    assert "n_pairs=" in mat_out
+    assert "postgresql://" not in mat_out
+    assert main(["publish-stats"]) == 0
+    pub_out = capsys.readouterr().out
+    assert "review_pending=" in pub_out
+    assert "postgresql://" not in pub_out
 
 
 def test_cli_migrate_unavailable_database_exits_nonzero(

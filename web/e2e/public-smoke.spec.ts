@@ -73,6 +73,8 @@ test.describe("public smoke", () => {
     const feed = await request.get("/feed.xml");
     expect(feed.status()).toBe(200);
     expect(feed.headers()["content-type"] ?? "").toMatch(/xml/);
+    expect(await feed.text()).not.toContain("UNPUBLISHED_FIXTURE_HEADLINE");
+    await expect(page.getByText("UNPUBLISHED_FIXTURE_HEADLINE")).toHaveCount(0);
 
     const missing = await request.get("/companies/this-slug-does-not-exist");
     expect(missing.status()).toBe(404);

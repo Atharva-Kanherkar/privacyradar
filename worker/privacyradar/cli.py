@@ -53,6 +53,29 @@ def main(argv: list[str] | None = None) -> int:
         help="Extract candidate claims for one observation (live model if keyed)",
     )
     extract_obs.add_argument("observation_id")
+    publish = sub.add_parser("publish-run", help="Publish validated claims from an extraction run")
+    publish.add_argument("run_id")
+    publish.add_argument("--actor", required=True)
+    reject = sub.add_parser("reject-event", help="Reject a change event")
+    reject.add_argument("event_id")
+    reject.add_argument("--actor", required=True)
+    reject.add_argument("--reason", required=True)
+    rollback = sub.add_parser("rollback-revision", help="Roll back a publication revision")
+    rollback.add_argument("revision_id")
+    rollback.add_argument("--actor", required=True)
+    rollback.add_argument("--reason", required=True)
+    corr_s = sub.add_parser("correction-submit", help="Submit a correction against a revision")
+    corr_s.add_argument("--company-id", required=True)
+    corr_s.add_argument("--revision-id", required=True)
+    corr_s.add_argument("--note", required=True)
+    corr_s.add_argument("--actor", required=True)
+    corr_r = sub.add_parser("correction-resolve", help="Resolve a correction")
+    corr_r.add_argument("correction_id")
+    corr_r.add_argument("--actor", required=True)
+    corr_r.add_argument("--decision", required=True, choices=("corrected", "declined"))
+    corr_r.add_argument("--note", required=True)
+    sub.add_parser("publish-stats", help="Print publication queue counts without quotes")
+    sub.add_parser("eval-materiality", help="Run the synthetic materiality corpus (no live model)")
 
     args = parser.parse_args(argv)
     if args.cmd == "migrate":
@@ -178,6 +201,107 @@ def main(argv: list[str] | None = None) -> int:
             f"n_unsupported={outcome.n_unsupported} latency_ms={outcome.latency_ms} "
             f"cost_usd={outcome.cost_usd} model={outcome.model}"
         )
+        return 0
+    if args.cmd == "publish-run":
+        from privacyradar.publication import publish_run
+
+        try:
+            with connect() as conn:
+                result = publish_run(conn, args.run_id, actor=args.actor)
+                conn.commit()
+        except Exception as exc:
+            print(f"publish-run failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
+        print(
+            f"revision_id={result.revision_id} revision_n={result.revision_n} "
+            f"n_claims={result.n_claims}"
+        )
+        return 0
+    if args.cmd == "reject-event":
+        from privacyradar.publication import reject_event
+
+        try:
+            with connect() as conn:
+                reject_event(conn, args.event_id, actor=args.actor, reason=args.reason)
+                conn.commit()
+        except Exception as exc:
+            print(f"reject-event failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
+        print("rejected")
+        return 0
+    if args.cmd == "rollback-revision":
+        from privacyradar.publication import rollback_revision
+
+        try:
+            with connect() as conn:
+                result = rollback_revision(
+                    conn, args.revision_id, actor=args.actor, reason=args.reason
+                )
+                conn.commit()
+        except Exception as exc:
+            print(f"rollback-revision failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
+        print(f"revision_id={result.revision_id} revision_n={result.revision_n}")
+        return 0
+    if args.cmd == "correction-submit":
+        from privacyradar.publication import submit_correction
+
+        try:
+            with connect() as conn:
+                correction_id = submit_correction(
+                    conn,
+                    company_id=args.company_id,
+                    revision_id=args.revision_id,
+                    note=args.note,
+                    actor=args.actor,
+                )
+                conn.commit()
+        except Exception as exc:
+            print(f"correction-submit failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
+        print(f"correction_id={correction_id}")
+        return 0
+    if args.cmd == "correction-resolve":
+        from privacyradar.publication import resolve_correction
+
+        try:
+            with connect() as conn:
+                replacement = resolve_correction(
+                    conn,
+                    args.correction_id,
+                    actor=args.actor,
+                    decision=args.decision,
+                    note=args.note,
+                )
+                conn.commit()
+        except Exception as exc:
+            print(f"correction-resolve failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
+        print(f"replacement_revision_id={replacement or 'none'}")
+        return 0
+    if args.cmd == "publish-stats":
+        from privacyradar.publication import publish_stats
+
+        try:
+            with connect() as conn:
+                stats = publish_stats(conn)
+        except Exception as exc:
+            print(f"publish-stats failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
+        for key, value in stats.items():
+            print(f"{key}={value}")
+        return 0
+    if args.cmd == "eval-materiality":
+        from privacyradar import materiality_eval
+
+        try:
+            mat_report = materiality_eval.evaluate_materiality()
+        except Exception as exc:
+            print(f"eval-materiality failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
+        print(materiality_eval.format_report(mat_report))
+        if not materiality_eval.gates_pass(mat_report):
+            return 1
         return 0
     return 1
 

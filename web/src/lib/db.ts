@@ -80,6 +80,7 @@ export async function listEvents(limit = 40): Promise<ChangeEvent[]> {
       from change_events e
       join companies c on c.id = e.company_id
       where e.materiality = 'material'
+        and e.publication_state in ('published', 'corrected')
       order by e.published_at desc
       limit ${limit}
     `;
@@ -221,6 +222,7 @@ export async function queryCompany(
       from change_events e
       join companies c on c.id = e.company_id
       where c.slug = ${slug}
+        and e.publication_state in ('published', 'corrected')
       order by e.published_at desc
       limit 30
   `;
@@ -290,6 +292,46 @@ export async function queryDocumentChange(
       limit 1
   `;
   return rows[0] ?? null;
+}
+
+export type PublishedClaimRow = {
+  claim_key: string;
+  category: string;
+  attribute: string;
+  polarity: string;
+  quote: string;
+  snapshot_id: string;
+  revision_id: string;
+  revision_n: number;
+};
+
+export async function listPublishedClaims(
+  companyId: string,
+): Promise<PublishedClaimRow[]> {
+  if (!sql) return [];
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(companyId)) {
+    return [];
+  }
+  return sql<PublishedClaimRow[]>`
+    select
+      pc.claim_key,
+      pc.category,
+      pc.attribute,
+      pc.polarity,
+      pc.quote,
+      pc.snapshot_id,
+      pr.id as revision_id,
+      pr.revision_n
+    from published_claims pc
+    join publication_revisions pr on pr.id = pc.revision_id
+    where pr.company_id = ${companyId}::uuid
+      and pr.state = 'published'
+      and pr.revision_n = (
+        select coalesce(max(revision_n), 0)
+        from publication_revisions
+        where company_id = ${companyId}::uuid and state = 'published'
+      )
+  `;
 }
 
 export async function listCompanies(): Promise<CompanyRow[]> {
