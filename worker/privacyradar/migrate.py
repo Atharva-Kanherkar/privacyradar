@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 import re
 import time
 from dataclasses import dataclass
@@ -17,7 +18,21 @@ logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MIGRATIONS_DIR = REPO_ROOT / "db" / "migrations"
+DOCKER_MIGRATIONS_DIR = Path("/app/db/migrations")
 FILENAME_RE = re.compile(r"^(\d{4})_([a-z0-9_]+)\.sql$")
+
+
+def default_migrations_dir() -> Path:
+    override = os.environ.get("PRIVACYRADAR_MIGRATIONS_DIR")
+    if override:
+        return Path(override)
+    if DEFAULT_MIGRATIONS_DIR.is_dir():
+        return DEFAULT_MIGRATIONS_DIR
+    if DOCKER_MIGRATIONS_DIR.is_dir():
+        return DOCKER_MIGRATIONS_DIR
+    return DEFAULT_MIGRATIONS_DIR
+
+
 LEDGER_SQL = """
 create table if not exists schema_migrations (
   version     text primary key,
@@ -104,7 +119,7 @@ def migrate(
     migrations_dir: Path | None = None,
 ) -> list[str]:
     """Apply pending migrations. Returns versions applied in this invocation."""
-    migrations = discover_migrations(migrations_dir)
+    migrations = discover_migrations(migrations_dir or default_migrations_dir())
     discovered = {item.version: item for item in migrations}
     applied_now: list[str] = []
     with _connect(database_url) as conn:

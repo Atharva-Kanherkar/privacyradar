@@ -27,6 +27,8 @@ web/test-results/
 web/playwright-report/
 web/blob-report/
 web/playwright/.cache/
+web/.vercel
+.vercel
 
 # snapshots / crawl cache
 data/snapshots/
@@ -38,3 +40,4 @@ CLAUDE.md
 
 .idea/
 .vscode/
+.railway/

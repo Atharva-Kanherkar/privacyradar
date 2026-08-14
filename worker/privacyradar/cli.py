@@ -115,7 +115,7 @@ def main(argv: list[str] | None = None) -> int:
         try:
             applied = migrate(settings.database_url)
         except Exception as exc:
-            print(f"migrate failed: {type(exc).__name__}", file=sys.stderr)
+            print(f"migrate failed: {type(exc).__name__}: {exc}", file=sys.stderr)
             return 1
         if applied:
             print("applied " + ", ".join(applied))
