@@ -48,3 +48,4 @@ Added in #10: `AuthNav` (Sign in / Account from session cookie).
 Added in #11: `WatchButton`.
 Added in #12: `/radar/settings` and signed `/unsubscribe` for transactional alerts.
 Added in #13: `/companies/request` — nominations are requested, not monitored.
+Added in #14: `/compare` — published claims only, no overall score.

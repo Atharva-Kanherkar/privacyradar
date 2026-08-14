@@ -199,9 +199,9 @@ def test_failed_observation_fixture_is_not_persisted_as_snapshot(db_url: str) ->
 
 def test_seed_public_fixtures_is_idempotent(db_url: str) -> None:
     with _connect(db_url) as conn:
-        assert seed_public_fixtures(conn) == 1
+        assert seed_public_fixtures(conn) == 2
         conn.commit()
         assert seed_public_fixtures(conn) == 0
         count = conn.execute("select count(*) as n from companies").fetchone()
     assert count is not None
-    assert count["n"] == 1
+    assert count["n"] == 2

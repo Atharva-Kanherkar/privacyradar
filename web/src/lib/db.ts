@@ -295,6 +295,7 @@ export type PublishedClaimRow = {
   snapshot_id: string;
   revision_id: string;
   revision_n: number;
+  taxonomy_version: string;
 };
 
 export async function listPublishedClaims(
@@ -313,7 +314,8 @@ export async function listPublishedClaims(
       pc.quote,
       pc.snapshot_id,
       pr.id as revision_id,
-      pr.revision_n
+      pr.revision_n,
+      pr.taxonomy_version
     from published_claims pc
     join publication_revisions pr on pr.id = pc.revision_id
     where pr.company_id = ${companyId}::uuid

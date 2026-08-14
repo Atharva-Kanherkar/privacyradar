@@ -73,6 +73,7 @@ def test_default_migrations_include_initial_and_observations() -> None:
         "0007",
         "0008",
         "0009",
+        "0010",
     ]
     assert found[0].name == "initial"
     assert found[1].name == "immutable_observations"
@@ -83,6 +84,7 @@ def test_default_migrations_include_initial_and_observations() -> None:
     assert found[6].name == "watches"
     assert found[7].name == "notifications"
     assert found[8].name == "catalog_cohorts"
+    assert found[9].name == "comparisons"
     assert found[0].checksum == ("5957a7874aaec1741621bfae3fff13f08fc3ca0c9222bb4592e56eac61cb3c8e")
 
 
@@ -106,4 +108,5 @@ def test_schema_sql_is_current_head_reference() -> None:
     assert "create table if not exists catalog_cohorts" in body
     assert "create table if not exists company_requests" in body
     assert "create table if not exists catalog_health_snapshots" in body
+    assert "compare_start" in body
     assert "schema_migrations" not in body

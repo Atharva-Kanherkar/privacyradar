@@ -58,7 +58,7 @@ def test_cli_migrate_and_seed_fixtures(
     assert "already at head" in capsys.readouterr().out
     assert main(["seed-fixtures"]) == 0
     first = capsys.readouterr().out
-    assert "seeded 1 fixture companies" in first
+    assert "seeded 2 fixture companies" in first
     assert main(["seed-fixtures"]) == 0
     assert "seeded 0 fixture companies" in capsys.readouterr().out
     assert main(["reconcile-observations"]) == 0

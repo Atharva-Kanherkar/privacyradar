@@ -155,6 +155,7 @@ def _company_id_for_run(conn: Any, run_id: str) -> dict[str, Any] | None:
               r.id as run_id,
               r.observation_id,
               r.snapshot_id,
+              r.taxonomy_version,
               s.is_valid,
               s.markdown,
               ps.company_id
@@ -217,9 +218,9 @@ def publish_run(
         """
         insert into publication_revisions (
           id, company_id, observation_id, extraction_run_id, change_event_id,
-          revision_n, state, actor
+          revision_n, state, actor, taxonomy_version
         )
-        values (%s, %s, %s, %s, %s, %s, 'published', %s)
+        values (%s, %s, %s, %s, %s, %s, 'published', %s, %s)
         """,
         (
             revision_id,
@@ -229,6 +230,7 @@ def publish_run(
             change_event_id,
             revision_n,
             actor,
+            str(run.get("taxonomy_version") or "1.0.0"),
         ),
     )
     markdown = str(run["markdown"])
@@ -377,7 +379,9 @@ def rollback_revision(conn: Any, revision_id: str, *, actor: str, reason: str) -
     conn.execute("select pg_advisory_xact_lock(%s)", (PUBLISH_LOCK_KEY,))
     target = conn.execute(
         """
-        select id, company_id, observation_id, extraction_run_id, change_event_id, state
+        select
+          id, company_id, observation_id, extraction_run_id, change_event_id,
+          state, taxonomy_version
         from publication_revisions
         where id = %s
         """,
@@ -391,9 +395,9 @@ def rollback_revision(conn: Any, revision_id: str, *, actor: str, reason: str) -
         """
         insert into publication_revisions (
           id, company_id, observation_id, extraction_run_id, change_event_id,
-          rolls_back_id, revision_n, state, actor
+          rolls_back_id, revision_n, state, actor, taxonomy_version
         )
-        values (%s, %s, %s, %s, %s, %s, %s, 'rolled_back', %s)
+        values (%s, %s, %s, %s, %s, %s, %s, 'rolled_back', %s, %s)
         """,
         (
             marker_id,
@@ -404,6 +408,7 @@ def rollback_revision(conn: Any, revision_id: str, *, actor: str, reason: str) -
             revision_id,
             marker_n,
             actor,
+            str(target.get("taxonomy_version") or "1.0.0"),
         ),
     )
     _audit(
