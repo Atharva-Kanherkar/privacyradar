@@ -33,6 +33,7 @@ UNTRUSTED_START = "BEGIN_UNTRUSTED_POLICY"
 UNTRUSTED_END = "END_UNTRUSTED_POLICY"
 CHUNK_SIZE = 4000
 CHUNK_OVERLAP = 200
+MAX_DOCUMENT_CHARS = 120_000
 
 
 class Extractor(Protocol):
@@ -163,8 +164,10 @@ def extract_document(
     taxonomy_version: str = TAXONOMY_VERSION,
     model: str | None = None,
 ) -> list[CandidateClaim]:
+    del model
     resolved_model = settings.openai_extract_model
-    chunks = chunk_document(markdown)
+    body = markdown[:MAX_DOCUMENT_CHARS]
+    chunks = chunk_document(body)
     collected: list[CandidateClaim] = []
     for chunk in chunks:
         collected.extend(

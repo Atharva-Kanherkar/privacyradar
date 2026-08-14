@@ -136,3 +136,52 @@ def test_reconcile_merges_duplicate_keys() -> None:
         attribute="email",
         polarity="disclosed",
     )
+
+
+def test_empty_policy_records_uncertainty_not_does_not_collect() -> None:
+    markdown = (
+        "# Privacy\n"
+        "This policy is a placeholder and does not describe collection, sharing, "
+        "retention, or user controls.\n"
+    )
+    invented = CandidateClaim(
+        category="data_collected",
+        attribute="email",
+        polarity="negated",
+        quotes=[EvidenceQuote(text="We do not collect email.", section="Privacy")],
+        confidence=1.0,
+    )
+    uncertainty = CandidateClaim(
+        category="uncertainty",
+        attribute="unknown",
+        polarity="unspecified",
+        quotes=[
+            EvidenceQuote(
+                text=(
+                    "This policy is a placeholder and does not describe collection, "
+                    "sharing, retention, or user controls."
+                ),
+                section="Privacy",
+            )
+        ],
+        confidence=1.0,
+    )
+    class PassthroughExtractor:
+        def extract(
+            self,
+            *,
+            instructions: str,
+            document: str,
+            taxonomy_version: str,
+            model: str,
+        ) -> list[CandidateClaim]:
+            del instructions, document, taxonomy_version, model
+            return [invented, uncertainty]
+
+    found = extract_document(markdown, PassthroughExtractor())
+    states = {
+        (claim.category, claim.attribute, claim.polarity): claim.validation_state
+        for claim in found
+    }
+    assert states[("data_collected", "email", "negated")] == "unsupported"
+    assert states[("uncertainty", "unknown", "unspecified")] == "valid"

@@ -7,7 +7,7 @@ from privacyradar.eval_runner import evaluate_golden, format_report, gates_pass
 
 def test_golden_extraction_eval_meets_gates() -> None:
     report = evaluate_golden()
-    assert report["n_fixtures"] >= 8
+    assert report["n_fixtures"] >= 12
     assert gates_pass(report)
     text = format_report(report)
     assert "citation_validity=" in text

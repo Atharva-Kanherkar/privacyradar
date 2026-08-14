@@ -63,6 +63,10 @@ def test_migrate_fresh_database_to_head(empty_database_url: str) -> None:
     assert ledger[0][1] == INITIAL_CHECKSUM
 
 
+def test_migrate_fresh_includes_0004(empty_database_url: str) -> None:
+    test_migrate_fresh_database_to_head(empty_database_url)
+
+
 def test_migrate_is_idempotent(empty_database_url: str) -> None:
     first = migrate(empty_database_url)
     tables_after_first = _tables(empty_database_url)
