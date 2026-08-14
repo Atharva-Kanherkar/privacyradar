@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
-import { Newsreader, Geist_Mono, Source_Sans_3 } from "next/font/google";
+import { Geist_Mono, Inter } from "next/font/google";
 import type { ReactNode } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
-const serif = Newsreader({
-  variable: "--font-newsreader",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const sans = Source_Sans_3({
-  variable: "--font-source-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   display: "swap",
 });
@@ -22,27 +16,29 @@ const mono = Geist_Mono({
   display: "swap",
 });
 
+const baseUrl = process.env.PUBLIC_BASE_URL ?? "https://privacyradar.local";
+
 export const metadata: Metadata = {
   title: {
-    default: "PrivacyRadar",
+    default: "PrivacyRadar: see what companies take from you",
     template: "%s · PrivacyRadar",
   },
   description:
-    "Evidence-backed disclosed privacy practices and material policy changes. Dated. Correctable.",
-  metadataBase: new URL("https://privacyradar.local"),
+    "PrivacyRadar reads privacy policies so you don't have to. See exactly what data each company collects (your voice, location, messages) with the receipts, and get alerted when it changes.",
+  metadataBase: new URL(baseUrl),
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${serif.variable} ${sans.variable} ${mono.variable} h-full antialiased`}
+      className={`${inter.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-[var(--paper)] text-[var(--ink)]">
         <SiteHeader />
         <div className="flex-1">{children}</div>
-        <footer className="border-t border-[var(--rule)]">
-          <p className="mx-auto max-w-5xl px-6 py-4 font-sans text-xs text-[var(--muted)]">
+        <footer className="border-t border-[var(--rule)] bg-[var(--surface)]">
+          <p className="mx-auto max-w-6xl px-6 py-5 text-xs text-[var(--muted)]">
             Not legal advice. We report what companies disclose in captured
             policies, with quotes. A missing fetch is not an empty policy.
           </p>

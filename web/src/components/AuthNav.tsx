@@ -22,14 +22,18 @@ export function AuthNav() {
       {signedIn ? (
         <Link
           href="/radar"
-          className="inline-flex min-h-11 items-center px-3 font-sans text-sm hover:underline"
+          className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-[var(--muted)] transition-colors hover:bg-[var(--panel)] hover:text-[var(--ink)]"
         >
           My Radar
         </Link>
       ) : null}
       <Link
         href={signedIn ? "/account" : "/login"}
-        className="inline-flex min-h-11 items-center px-3 font-sans text-sm hover:underline"
+        className={
+          signedIn
+            ? "inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-[var(--muted)] transition-colors hover:bg-[var(--panel)] hover:text-[var(--ink)]"
+            : "ml-1 inline-flex min-h-10 items-center rounded-lg bg-[var(--ink)] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90"
+        }
       >
         {signedIn ? "Account" : "Sign in"}
       </Link>

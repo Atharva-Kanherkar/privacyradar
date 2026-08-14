@@ -18,7 +18,7 @@ test.describe("Comparisons", () => {
     await expect(page.getByRole("table")).toBeVisible();
     await page.getByRole("link", { name: "Open evidence" }).first().click();
     await expect(page).toHaveURL(/\/companies\/(signal|proton)/);
-    await expect(page.getByText(/We collect your email|advertising partners/)).toBeVisible();
+    await expect(page.getByText(/We collect your email|advertising partners/).first()).toBeVisible();
 
     const api = await request.get("/api/compare?companies=signal,proton");
     expect(api.status()).toBe(200);

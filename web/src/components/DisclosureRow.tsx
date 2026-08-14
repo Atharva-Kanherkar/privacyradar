@@ -27,7 +27,7 @@ export function DisclosureRow({
 }) {
   const label = `${category.replaceAll("_", " ")} · ${attribute.replaceAll("_", " ")}`;
   return (
-    <li id={`claim-${claimKey}`} className="border border-[var(--rule)] bg-[var(--surface)] p-5">
+    <li id={`claim-${claimKey}`} className="rounded-xl border border-[var(--rule)] bg-[var(--panel)] p-5">
       <p className="font-sans text-sm uppercase tracking-wide text-[var(--muted)]">{label}</p>
       <p className="mt-2 text-lg">
         We found: {POLARITY[polarity] ?? polarity}

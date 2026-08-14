@@ -1,46 +1,34 @@
 import { createHash } from "node:crypto";
-import { listPublishedClaims, sql } from "@/lib/db";
+import {
+  listPublishedClaims,
+  sql,
+  type ChangeEvent,
+  type PublishedClaimRow,
+} from "@/lib/db";
 
-const DAILY_LIMIT = 10;
-const OUT_OF_SCOPE = /\b(weather|stock|sue|illegal|lawyer|other company|competitor)\b/i;
+export const DAILY_LIMIT = 30;
 
 export function hashIdentity(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
 }
 
-export async function assistantEnabled(): Promise<boolean> {
+/**
+ * The assistant is on when a model key is configured. ASSISTANT_ENABLED=false
+ * is the kill switch; the legacy product_switches row no longer gates it.
+ */
+export function assistantEnabled(): boolean {
+  if (process.env.ASSISTANT_ENABLED === "false") return false;
+  return Boolean(process.env.OPENAI_API_KEY);
+}
+
+export type ChatMessage = { role: "user" | "assistant"; content: string };
+
+export type AssistantGate =
+  | { ok: true }
+  | { ok: false; code: "disabled" | "rate_limited" | "unknown_company"; message: string };
+
+export async function checkRateLimit(identity: string): Promise<boolean> {
   if (!sql) return false;
-  const rows = await sql<{ enabled: boolean }[]>`
-    select enabled from product_switches where key = 'assistant' limit 1
-  `;
-  return Boolean(rows[0]?.enabled);
-}
-
-function tokens(question: string): string[] {
-  return (question.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []).filter(
-    (part, index, all) => all.indexOf(part) === index,
-  );
-}
-
-export async function askCompany(
-  slug: string,
-  question: string,
-  identity: string,
-): Promise<{ status: string; reason: string | null; text: string; citations: { claim_key: string; quote: string }[] }> {
-  if (!(await assistantEnabled())) {
-    return { status: "disabled", reason: "assistant_off", text: "", citations: [] };
-  }
-  if ((process.env.ASSISTANT_PROVIDER ?? "fake") !== "fake") {
-    return { status: "disabled", reason: "provider_not_allowed", text: "", citations: [] };
-  }
-  if (!sql) return { status: "disabled", reason: "assistant_off", text: "", citations: [] };
-  const companies = await sql<{ id: string }[]>`
-    select id from companies where slug = ${slug} limit 1
-  `;
-  const companyId = companies[0]?.id;
-  if (!companyId) {
-    return { status: "refused", reason: "unknown_company", text: "", citations: [] };
-  }
   const day = new Date().toISOString().slice(0, 10);
   await sql`
     insert into assistant_usage (identity_hash, day, count)
@@ -53,26 +41,83 @@ export async function askCompany(
     select count from assistant_usage
     where identity_hash = ${identity} and day = ${day}::date
   `;
-  if ((usage[0]?.count ?? 0) > DAILY_LIMIT) {
-    return { status: "rate_limited", reason: "daily_limit", text: "", citations: [] };
-  }
-  if (OUT_OF_SCOPE.test(question)) {
-    return { status: "refused", reason: "out_of_scope", text: "", citations: [] };
-  }
-  const claims = await listPublishedClaims(companyId);
-  const needle = tokens(question);
-  const retrieved = claims.filter((claim) => {
-    const blob = `${claim.category} ${claim.attribute} ${claim.quote}`.toLowerCase();
-    return needle.some((token) => new RegExp(`\\b${token}\\b`).test(blob));
-  });
-  const top = retrieved[0];
-  if (!top) {
-    return { status: "refused", reason: "insufficient_evidence", text: "", citations: [] };
-  }
+  return (usage[0]?.count ?? 0) <= DAILY_LIMIT;
+}
+
+export type Grounding = {
+  companyId: string;
+  companyName: string;
+  claims: PublishedClaimRow[];
+  events: Pick<ChangeEvent, "headline" | "summary" | "published_at">[];
+};
+
+export async function loadGrounding(slug: string): Promise<Grounding | null> {
+  if (!sql) return null;
+  const companies = await sql<{ id: string; name: string }[]>`
+    select id, name from companies where slug = ${slug} limit 1
+  `;
+  const company = companies[0];
+  if (!company) return null;
+  const claims = await listPublishedClaims(company.id);
+  const events = await sql<
+    Pick<ChangeEvent, "headline" | "summary" | "published_at">[]
+  >`
+    select headline, summary, published_at
+    from change_events
+    where company_id = ${company.id}::uuid
+      and publication_state in ('published', 'corrected')
+    order by published_at desc
+    limit 10
+  `;
   return {
-    status: "answered",
-    reason: null,
-    text: `We found published evidence: ${top.quote}`,
-    citations: [{ claim_key: top.claim_key, quote: top.quote }],
+    companyId: company.id,
+    companyName: company.name,
+    claims,
+    events,
   };
+}
+
+function formatClaim(claim: PublishedClaimRow): string {
+  const status =
+    claim.polarity === "negated"
+      ? "the policy states this does NOT happen"
+      : claim.polarity === "disclosed"
+        ? "disclosed"
+        : "unspecified";
+  return `- [${claim.category} / ${claim.attribute} — ${status}] Exact policy quote: "${claim.quote}"`;
+}
+
+export function buildSystemPrompt(grounding: Grounding): string {
+  const claimBlock =
+    grounding.claims.length > 0
+      ? grounding.claims.map(formatClaim).join("\n")
+      : "(No published evidence yet for this company.)";
+  const eventBlock =
+    grounding.events.length > 0
+      ? grounding.events
+          .map(
+            (event) =>
+              `- ${new Date(event.published_at).toISOString().slice(0, 10)}: ${event.headline} — ${event.summary}`,
+          )
+          .join("\n")
+      : "(No published policy changes yet.)";
+
+  return `You are the PrivacyRadar assistant. You help everyday people understand what ${grounding.companyName} says in its privacy policy.
+
+You may ONLY use the published evidence below. It was extracted verbatim from ${grounding.companyName}'s captured privacy policy.
+
+## Published evidence for ${grounding.companyName}
+${claimBlock}
+
+## Recent published policy changes
+${eventBlock}
+
+## Rules
+- Answer in plain, friendly language a non-lawyer understands. Be concise: 2-6 short sentences for most questions.
+- When you state a practice, back it with the exact policy quote in quotation marks.
+- If the evidence above does not cover the question, say plainly: "PrivacyRadar hasn't published evidence about that yet" — never guess or use outside knowledge about the company.
+- "the policy states this does NOT happen" evidence means the company explicitly denies the practice; you can say so, with the quote.
+- Only discuss ${grounding.companyName}'s privacy practices. Politely decline anything else (other companies, legal advice, unrelated topics).
+- You are not a lawyer and this is not legal advice; only mention this if the user asks for legal advice.
+- Do not use markdown formatting (no **, #, or bullet lists). Write plain sentences.`;
 }

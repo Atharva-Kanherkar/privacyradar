@@ -155,7 +155,7 @@ export default async function ComparePage({
       </p>
       <form action="/compare/select" method="post" className="mt-8">
         <fieldset>
-          <legend className="font-sans text-sm">Select 2–4 companies</legend>
+          <legend className="font-sans text-sm">Select 2 to 4 companies</legend>
           {!catalog.ok ? (
             <StatePanel title="Catalog unavailable">
               We could not load companies to compare.

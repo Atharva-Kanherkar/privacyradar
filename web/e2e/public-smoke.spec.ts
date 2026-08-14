@@ -24,8 +24,8 @@ test.describe("public smoke", () => {
       "What do the services you use disclose about your data?",
     );
     await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Companies" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Methodology" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Companies" }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "How it works" })).toBeVisible();
     await expect(page.getByText("UNPUBLISHED_FIXTURE_HEADLINE")).toHaveCount(0);
     await expect(page.getByText("PUBLISHED_FIXTURE_HEADLINE")).toBeVisible();
 
@@ -34,16 +34,17 @@ test.describe("public smoke", () => {
     await expect(page).toHaveURL(/\/companies\?q=signal/i);
     await page.getByRole("link", { name: "Signal" }).first().click();
     await expect(page.getByRole("heading", { level: 1, name: "Signal" })).toBeVisible();
+    await page.locator("summary", { hasText: "Email address" }).first().click();
     await expect(
-      page.getByText("We collect your email address to create an account."),
+      page.getByText("We collect your email address to create an account.").first(),
     ).toBeVisible();
 
     expect((await page.goto("/companies"))?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1, name: "Catalog" })).toBeVisible();
-    const signalRow = page.getByRole("row", { name: /Signal/ });
-    await expect(signalRow).toBeVisible();
-    await expect(signalRow.getByText(/^(healthy|pending|check delayed)$/)).toBeVisible();
-    await expect(signalRow.getByText(/timeout|dns|Connection refused/i)).toHaveCount(0);
+    const signalCard = page.getByRole("link", { name: /Signal/ }).first();
+    await expect(signalCard).toBeVisible();
+    await expect(signalCard.getByText(/^(healthy|pending|check delayed)$/)).toBeVisible();
+    await expect(signalCard.getByText(/timeout|dns|Connection refused/i)).toHaveCount(0);
 
     const companies = await request.get("/api/companies?q=signal");
     expect(companies.status()).toBe(200);

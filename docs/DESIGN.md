@@ -1,53 +1,65 @@
-# PrivacyRadar design tokens (issue #9)
+# PrivacyRadar design tokens
 
-Editorial paper/ink bulletin. No gradients, glass, mascots, animated counters, or a universal privacy score.
+Modern consumer product look (2026 revamp): clean light surfaces, rounded cards,
+one accent color, and plain-language data-category cards with icons. Still no
+mascots, animated counters, or a universal privacy score. Evidence rigor is
+unchanged: every published claim renders with its verbatim quote.
 
 ## Color
 
 | Token | Value | Use |
 |---|---|---|
-| `--paper` | `#f4efe6` | Page background |
-| `--ink` | `#1c1917` | Body text |
-| `--muted` | `#44403c` | Secondary text (AA on paper) |
-| `--rule` | `#d6cfc3` | Borders |
-| `--surface` | `#fffdf8` | Cards |
-| `--focus` | `#1d4ed8` | 2px focus ring |
-| `--important` | `#9f1239` | Important material change (also labeled in text) |
-| `--warning` | `#92400e` | Check delayed / uncertainty |
-| `--success` | `#166534` | Healthy / last checked ok |
+| `--paper` | `#f8fafc` | Page background |
+| `--ink` | `#0f172a` | Body text |
+| `--muted` | `#64748b` | Secondary text |
+| `--rule` | `#e2e8f0` | Borders |
+| `--surface` | `#ffffff` | Cards |
+| `--panel` | `#f1f5f9` | Inset panels, chips |
+| `--accent` | `#4f46e5` | Brand accent, focus ring, links |
+| `--accent-soft` | `#eef2ff` | Accent-tinted backgrounds |
+| `--danger` / `--danger-soft` | `#dc2626` / `#fef2f2` | Sensitive data, selling data, AI training |
+| `--good` / `--good-soft` | `#15803d` / `#f0fdf4` | User controls, explicit denials |
+| `--warning` / `--warning-soft` | `#b45309` / `#fffbeb` | Unclear / check delayed |
+| `--important` | `#be123c` | Important material change (also labeled in text) |
 
-Do not rely on color alone. Materiality uses the words `Important`, `Moderate`, `Minor`.
+Do not rely on color alone. Materiality uses the words `Important`, `Moderate`,
+`Minor`; claim badges use words (`Collected`, `Says no`, `Good sign`, `Unclear`).
 
 ## Type
 
-- Serif: Newsreader — headings and body.
-- Sans: Source Sans 3 — controls, nav, comparison-density UI.
+- Sans: Inter — everything (headings tighter via letter-spacing).
 - Mono: Geist Mono — timestamps, hashes, snapshot ids.
-
-Mobile h1 2rem; desktop h1 2.5rem. Body 1.125rem / 1.6.
+- Legacy `.font-serif` classes render as Inter so old pages inherit the new look.
 
 ## Space and targets
 
-4px base. Padding scale 8 / 12 / 16 / 24 / 48. Minimum tap target 44px. Visible `:focus-visible` ring 2px `--focus`.
+4px base. Rounded corners: cards `rounded-2xl`, controls `rounded-lg`+.
+Minimum tap target 44px. Visible `:focus-visible` ring 2px `--accent`.
 
 ## Motion
 
-Honor `prefers-reduced-motion: reduce`. No content-shifting loaders on public pages (server-rendered).
+Honor `prefers-reduced-motion: reduce`. No content-shifting loaders on public
+pages (server-rendered). Card hover lift is subtle and non-essential.
 
 ## Copy
 
-Structured facts: “discloses”, “we found”, “we have not found evidence”, “last checked”. Never “takes” in those blocks. Policy quotes are visually distinct (left rail).
+Plain language a non-lawyer understands. Marketing surfaces (home hero, section
+titles) may say "takes"; structured evidence blocks keep "discloses", "we
+found", "we have not found evidence", "last checked". Policy quotes stay
+visually distinct (left rail). No em or en dashes in copy.
 
-## Components (this issue)
+## Data-category cards
 
-`SearchForm`, `FreshnessLabel`, `EvidenceQuote`, `DisclosureRow`, `ChangeCard`, `StatePanel`, `SiteHeader`.
+`ClaimCard` renders one published claim as icon + plain label + badge, with the
+verbatim quote one tap away (`details`). Icons come from lucide-react via
+`DataTypeIcon`; labels and one-liners live in `src/lib/data-categories.ts`.
+Sensitive categories (biometrics, health, children, precise location), data
+sale, and AI training render in danger tones; user controls and explicit
+denials render in good tones.
 
-Deferred: `WatchButton`, `CompanyPicker`, `ComparisonMatrix`, `AssistantPanel` (#11+).
+## Components
 
-Added in #10: `AuthNav` (Sign in / Account from session cookie).
-Added in #11: `WatchButton`.
-Added in #12: `/radar/settings` and signed `/unsubscribe` for transactional alerts.
-Added in #13: `/companies/request` — nominations are requested, not monitored.
-Added in #14: `/compare` — published claims only, no overall score.
-Added in #15: company-page cited assistant, off by default.
-Added in #17: operations runbook and launch status (not launch-ready).
+`SearchForm`, `FreshnessLabel`, `EvidenceQuote`, `DisclosureRow`, `ChangeCard`,
+`StatePanel`, `SiteHeader`, `AuthNav`, `WatchButton`, `CompanyCard`,
+`DataTypeChip`, `DataTypeIcon`, `ClaimCard`, `ChatAssistant` (streaming,
+evidence-grounded, on when `OPENAI_API_KEY` is set).
