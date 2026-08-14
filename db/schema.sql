@@ -1,7 +1,7 @@
 -- Current-head schema reference. Apply with `privacyradar migrate`.
--- Docker-compose may bootstrap from this file; migrate still records 0001+0002
+-- Docker-compose may bootstrap from this file; migrate still records 0001–0003
 -- and installs append-only triggers. This file matches the end state of
--- db/migrations/0001_initial.sql plus 0002 DDL (without DML backfill/triggers).
+-- db/migrations/0001_initial.sql plus 0002 and 0003 DDL (without DML/triggers).
 
 create extension if not exists pgcrypto;
 
@@ -29,16 +29,41 @@ create table if not exists policy_sources (
   last_success_at         timestamptz,
   last_failure_code       text,
   consecutive_failures    integer not null default 0,
+  due_at                  timestamptz not null default now(),
+  lease_owner             text,
+  lease_token             uuid,
+  lease_expires_at        timestamptz,
+  retry_count             integer not null default 0,
+  etag                    text,
+  last_modified           text,
+  quarantine_reason       text,
+  quarantined_at          timestamptz,
   unique (company_id, kind, region),
   check (health_status in ('pending', 'healthy', 'degraded', 'quarantined')),
   check (
     last_failure_code is null
     or last_failure_code in (
-      'timeout', 'dns', 'tls', 'http_4xx', 'http_5xx',
-      'empty', 'short', 'wrong_type', 'normalize_failed', 'network', 'blocked'
+      'timeout', 'dns', 'tls', 'http_4xx', 'http_5xx', 'http_429',
+      'empty', 'short', 'wrong_type', 'normalize_failed', 'network',
+      'blocked', 'robots', 'ssrf', 'oversize', 'moved'
+    )
+  ),
+  check (
+    quarantine_reason is null
+    or quarantine_reason in (
+      'consecutive_failures', 'invalid_content', 'blocked', 'ssrf',
+      'robots', 'moved', 'oversize', 'poison'
     )
   )
 );
+
+create index if not exists policy_sources_claim_idx
+  on policy_sources (due_at)
+  where enabled and health_status <> 'quarantined';
+
+create index if not exists policy_sources_lease_idx
+  on policy_sources (lease_expires_at)
+  where lease_expires_at is not null;
 
 create table if not exists snapshots (
   id                  uuid primary key default gen_random_uuid(),
@@ -114,8 +139,9 @@ create table if not exists source_attempts (
   check (
     error_code is null
     or error_code in (
-      'timeout', 'dns', 'tls', 'http_4xx', 'http_5xx',
-      'empty', 'short', 'wrong_type', 'normalize_failed', 'network', 'blocked'
+      'timeout', 'dns', 'tls', 'http_4xx', 'http_5xx', 'http_429',
+      'empty', 'short', 'wrong_type', 'normalize_failed', 'network',
+      'blocked', 'robots', 'ssrf', 'oversize', 'moved'
     )
   )
 );
@@ -156,3 +182,61 @@ create table if not exists document_changes (
 
 create index if not exists document_changes_source_created_idx
   on document_changes (source_id, created_at desc);
+
+create table if not exists fetch_jobs (
+  id                uuid primary key default gen_random_uuid(),
+  idempotency_key   text not null unique,
+  source_id         uuid not null references policy_sources(id) on delete cascade,
+  status            text not null,
+  attempt_no        integer not null default 0,
+  lease_owner       text,
+  lease_token       uuid,
+  lease_expires_at  timestamptz,
+  run_after         timestamptz not null default now(),
+  finished_at       timestamptz,
+  error_code        text,
+  created_at        timestamptz not null default now(),
+  check (
+    status in (
+      'pending', 'leased', 'succeeded', 'retryable_failed',
+      'quarantined', 'cancelled'
+    )
+  ),
+  check (
+    error_code is null
+    or error_code in (
+      'timeout', 'dns', 'tls', 'http_4xx', 'http_5xx', 'http_429',
+      'empty', 'short', 'wrong_type', 'normalize_failed', 'network',
+      'blocked', 'robots', 'ssrf', 'oversize', 'moved'
+    )
+  )
+);
+
+create index if not exists fetch_jobs_status_run_after_idx
+  on fetch_jobs (status, run_after);
+
+create index if not exists fetch_jobs_source_created_idx
+  on fetch_jobs (source_id, created_at desc);
+
+create table if not exists source_operator_actions (
+  id          uuid primary key default gen_random_uuid(),
+  source_id   uuid not null references policy_sources(id) on delete cascade,
+  action      text not null,
+  actor       text not null,
+  reason      text,
+  created_at  timestamptz not null default now(),
+  metadata    jsonb not null default '{}'::jsonb,
+  check (action in ('retry', 'disable', 'enable')),
+  check (actor ~ '^[a-z0-9][a-z0-9:_-]{1,62}$'),
+  check (
+    reason is null
+    or (
+      char_length(reason) <= 64
+      and reason !~ '@'
+      and reason !~ '://'
+    )
+  )
+);
+
+create index if not exists source_operator_actions_source_created_idx
+  on source_operator_actions (source_id, created_at desc);

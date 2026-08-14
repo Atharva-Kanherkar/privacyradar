@@ -109,6 +109,42 @@ def test_repeat_identical_fetch_dedupes_content(db_url: str) -> None:
     assert observations is not None and observations["n"] == 1
 
 
+def test_observe_304_does_not_create_snapshot_or_observation(db_url: str) -> None:
+    source = _seed(db_url, "not-modified")
+    with _connect(db_url) as conn:
+        first = observe_source(conn, source, _fetch(str(source["url"]), POLICY_A))
+        conn.commit()
+        snapshot_id = first.snapshot_id
+        not_modified = FetchResult(
+            url=str(source["url"]),
+            status=304,
+            content_type="text/html",
+            html="",
+            markdown="",
+            error=None,
+            body=b"",
+        )
+        second = observe_source(conn, source, not_modified)
+        conn.commit()
+        snapshots = conn.execute("select count(*) as n from snapshots").fetchone()
+        observations = conn.execute("select count(*) as n from observations").fetchone()
+        attempts = conn.execute(
+            "select http_status, status from source_attempts order by started_at"
+        ).fetchall()
+        health = conn.execute(
+            "select health_status, consecutive_failures, current_snapshot_id from policy_sources"
+        ).fetchone()
+    assert second.outcome == "deduped"
+    assert second.message.endswith("not modified")
+    assert snapshots is not None and snapshots["n"] == 1
+    assert observations is not None and observations["n"] == 1
+    assert [row["http_status"] for row in attempts] == [200, 304]
+    assert health is not None
+    assert health["health_status"] == "healthy"
+    assert health["consecutive_failures"] == 0
+    assert str(health["current_snapshot_id"]) == snapshot_id
+
+
 def test_content_change_creates_document_change(db_url: str) -> None:
     source = _seed(db_url, "change-co")
     with _connect(db_url) as conn:
@@ -222,7 +258,7 @@ def test_failed_fetch_does_not_replace_current_snapshot(db_url: str) -> None:
     assert after["current_snapshot_id"] == before["current_snapshot_id"]
     assert after["health_status"] == "degraded"
     assert after["last_failure_code"] == "timeout"
-    assert after["consecutive_failures"] == 1
+    assert after["consecutive_failures"] == 0
     assert after["last_success_at"] is not None
     assert snapshots is not None and snapshots["n"] == 1
     assert observations is not None and observations["n"] == 1
@@ -399,7 +435,7 @@ def test_five_failures_quarantine_source(db_url: str) -> None:
     source = _seed(db_url, "quarantine-co")
     with _connect(db_url) as conn:
         for _ in range(5):
-            observe_source(conn, source, _fetch(str(source["url"]), "", error="timeout"))
+            observe_source(conn, source, _fetch(str(source["url"]), "", error="ssrf"))
         conn.commit()
         row = conn.execute(
             "select health_status, consecutive_failures from policy_sources where id = %s",

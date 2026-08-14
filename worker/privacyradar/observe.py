@@ -14,6 +14,7 @@ from psycopg.types.json import Json
 from privacyradar.classify import Classification, classify_fetch
 from privacyradar.crawl import FetchResult
 from privacyradar.hashing import NORMALIZER_VERSION, changed_sections
+from privacyradar.retry import is_retryable
 
 logger = logging.getLogger(__name__)
 
@@ -90,8 +91,13 @@ def observe_source(
     consecutive = int(current["consecutive_failures"] or 0)
 
     if not classification.valid:
-        consecutive += 1
-        health = _health_after_failure(consecutive)
+        if is_retryable(classification.error_code):
+            health = "degraded"
+            if str(current["health_status"] or "") == "quarantined":
+                health = "quarantined"
+        else:
+            consecutive += 1
+            health = _health_after_failure(consecutive)
         conn.execute(
             """
             insert into source_attempts (
@@ -153,6 +159,66 @@ def observe_source(
                 failed_attempts=1,
                 normalization_failures=normalize_fail,
             ),
+        )
+
+    if classification.not_modified:
+        conn.execute(
+            """
+            insert into source_attempts (
+              id, source_id, started_at, finished_at, strategy, status,
+              http_status, content_type, request_url, resolved_url,
+              snapshot_id, byte_count, normalizer_version
+            )
+            values (%s, %s, %s, %s, 'http', 'succeeded', %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                attempt_id,
+                source_id,
+                now,
+                now,
+                fetched.status,
+                fetched.content_type,
+                request_url,
+                fetched.url,
+                previous_snapshot_id,
+                0,
+                NORMALIZER_VERSION,
+            ),
+        )
+        conn.execute(
+            """
+            update policy_sources
+            set health_status = 'healthy',
+                last_attempt_at = %s,
+                last_success_at = %s,
+                last_failure_code = null,
+                consecutive_failures = 0
+            where id = %s
+            """,
+            (now, now, source_id),
+        )
+        logger.info(
+            "observe not_modified",
+            extra={
+                "source_id": source_id,
+                "attempt_id": attempt_id,
+                "snapshot_id": previous_snapshot_id,
+                "outcome": "not_modified",
+                "http_status": 304,
+                "normalizer_version": NORMALIZER_VERSION,
+            },
+        )
+        return ObserveResult(
+            outcome="deduped",
+            message=f"{slug}: not modified",
+            error_code=None,
+            attempt_id=attempt_id,
+            snapshot_id=previous_snapshot_id,
+            observation_id=previous_observation_id,
+            document_change_id=None,
+            current_snapshot_id=previous_snapshot_id,
+            health_status="healthy",
+            metrics=ObserveMetrics(fetch_attempts=1, deduped=1),
         )
 
     assert classification.normalized is not None

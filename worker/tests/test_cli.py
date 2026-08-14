@@ -14,6 +14,12 @@ def test_cli_migrate_help() -> None:
     assert exc.value.code == 0
 
 
+def test_cli_crawl_help() -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(["crawl", "--help"])
+    assert exc.value.code == 0
+
+
 def test_cli_unknown_command_exits_nonzero() -> None:
     try:
         main(["not-a-command"])
@@ -51,6 +57,10 @@ def test_cli_migrate_and_seed_fixtures(
     assert "seeded 0 fixture companies" in capsys.readouterr().out
     assert main(["reconcile-observations"]) == 0
     assert "observations_created=0" in capsys.readouterr().out
+    assert main(["fetch-stats"]) == 0
+    stats_out = capsys.readouterr().out
+    assert "overdue_sources=" in stats_out
+    assert "postgresql://" not in stats_out
 
 
 def test_cli_migrate_unavailable_database_exits_nonzero(
