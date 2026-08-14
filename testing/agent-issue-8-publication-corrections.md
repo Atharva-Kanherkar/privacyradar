@@ -83,7 +83,7 @@ Offsets: if stored offsets are null, compute from `markdown.find(quote)`; if the
 6. Cosmetic materiality → `publication_state=rejected`, not listed publicly, no published claims.
 7. Uncertain/material → `review_pending` until an operator publishes.
 
-Rollback inserts a `publication_revisions` row with `state='rolled_back'` targeting the abandoned revision, then inserts a new `state='published'` row cloning the restored prior claims at `revision_n+1`. Review actions record `rollback`.
+Rollback inserts a `publication_revisions` row with `state='rolled_back'` targeting the abandoned revision, then inserts a new `state='published'` row cloning the restored prior claims at `revision_n+1`. Review actions record `rollback`. If the abandoned revision is linked to a different change event than the restored revision, that abandoned event is set to `publication_state='corrected'` so it is history, not a live feed item.
 
 ### Corrections
 
@@ -105,7 +105,7 @@ privacyradar eval-materiality
 
 ### Public reads
 
-`listEvents` / company change history: `publication_state in ('published','corrected')`. Company profile may keep reading `extractions.practices` for the prototype practices JSON until #9, but must not read candidate tables. A helper `listPublishedClaims(companyId)` is available for #9 and is unused by pages except tests that grep `db.ts`.
+`listEvents` (home and RSS): `publication_state = 'published'` only. Company change history: `publication_state in ('published','corrected')` so replacement history stays inspectable. Company profile may keep reading `extractions.practices` for the prototype practices JSON until #9, but must not read candidate tables. A helper `listPublishedClaims(companyId)` is available for #9 and is unused by pages except tests that grep `db.ts`.
 
 ### Materiality corpus
 
