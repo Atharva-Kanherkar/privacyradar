@@ -10,6 +10,7 @@ import psycopg
 from psycopg.types.json import Json
 
 from privacyradar.hashing import NORMALIZER_VERSION
+from privacyradar.taxonomy import PROMPT_VERSION, TAXONOMY_VERSION, claim_key
 from privacyradar.testing.fixtures import (
     ClaimFixture,
     CompanyFixture,
@@ -22,6 +23,7 @@ from privacyradar.testing.fixtures import (
     make_company,
     make_observation,
     make_source,
+    stable_uuid,
 )
 
 
@@ -225,24 +227,170 @@ def seed_public_fixtures(conn: psycopg.Connection[dict[str, Any]]) -> int:
     existing = conn.execute(
         "select 1 from companies where slug = %s", (company.slug,)
     ).fetchone()
-    if existing is not None:
-        return 0
-    source = make_source(company)
-    observation = make_observation(source)
-    claim = make_claim(observation, company)
-    persist_company(conn, company)
-    persist_source(conn, source)
-    persist_observation(conn, observation)
-    persist_claim(conn, claim)
+    created = 0
+    if existing is None:
+        source = make_source(company)
+        observation = make_observation(source)
+        claim = make_claim(observation, company)
+        persist_company(conn, company)
+        persist_source(conn, source)
+        persist_observation(conn, observation)
+        persist_claim(conn, claim)
+        conn.execute(
+            """
+            insert into change_events (
+              id, company_id, source_id, from_snapshot, to_snapshot,
+              materiality, headline, summary, publication_state
+            )
+            values (%s, %s, %s, %s, %s, 'material', 'UNPUBLISHED_FIXTURE_HEADLINE',
+                    'Held for review.', 'review_pending')
+            """,
+            (
+                str(stable_uuid("unpublished-event", company.slug)),
+                str(company.id),
+                str(source.id),
+                str(observation.id),
+                str(observation.id),
+            ),
+        )
+        created = 1
+    _ensure_published_fixture(conn, company)
+    return created
+
+
+def _ensure_published_fixture(
+    conn: psycopg.Connection[dict[str, Any]], company: CompanyFixture
+) -> None:
+    already = conn.execute(
+        "select 1 from publication_revisions where company_id = %s limit 1",
+        (str(company.id),),
+    ).fetchone()
+    if already is not None:
+        return
+    ctx = conn.execute(
+        """
+        select s.id as source_id, o.id as observation_id, o.snapshot_id, snap.markdown
+        from policy_sources s
+        join observations o on o.source_id = s.id
+        join snapshots snap on snap.id = o.snapshot_id
+        where s.company_id = %s
+        limit 1
+        """,
+        (str(company.id),),
+    ).fetchone()
+    if ctx is None:
+        return
+    markdown = str(ctx["markdown"] or "")
+    quote = "We collect your email address to create an account."
+    start = markdown.find(quote)
+    if start < 0:
+        return
+    run_id = str(stable_uuid("fixture-run", company.slug))
+    claim_id = str(stable_uuid("fixture-claim", company.slug))
+    revision_id = str(stable_uuid("fixture-revision", company.slug))
+    event_id = str(stable_uuid("published-event", company.slug))
+    key = claim_key(
+        taxonomy_version=TAXONOMY_VERSION,
+        category="data_collected",
+        attribute="email",
+        polarity="disclosed",
+    )
+    conn.execute(
+        """
+        insert into extraction_runs (
+          id, observation_id, snapshot_id, taxonomy_version, prompt_version,
+          model, status
+        )
+        values (%s, %s, %s, %s, %s, 'fixture', 'succeeded')
+        """,
+        (
+            run_id,
+            str(ctx["observation_id"]),
+            str(ctx["snapshot_id"]),
+            TAXONOMY_VERSION,
+            PROMPT_VERSION,
+        ),
+    )
+    conn.execute(
+        """
+        insert into candidate_claims (
+          id, run_id, claim_key, category, attribute, polarity,
+          confidence, validation_state
+        )
+        values (%s, %s, %s, 'data_collected', 'email', 'disclosed', 1, 'valid')
+        """,
+        (claim_id, run_id, key),
+    )
+    conn.execute(
+        """
+        insert into evidence_spans (
+          id, claim_id, snapshot_id, quote, section, start_offset, end_offset,
+          validation_result
+        )
+        values (%s, %s, %s, %s, 'Privacy', %s, %s, 'exact')
+        """,
+        (
+            str(stable_uuid("fixture-span", company.slug)),
+            claim_id,
+            str(ctx["snapshot_id"]),
+            quote,
+            start,
+            start + len(quote),
+        ),
+    )
     conn.execute(
         """
         insert into change_events (
-          company_id, source_id, from_snapshot, to_snapshot,
-          materiality, headline, summary, publication_state
+          id, company_id, source_id, from_snapshot, to_snapshot,
+          materiality, headline, summary, quotes, publication_state, published_at
         )
-        values (%s, %s, %s, %s, 'material', 'UNPUBLISHED_FIXTURE_HEADLINE',
-                'Held for review.', 'review_pending')
+        values (
+          %s, %s, %s, %s, %s, 'material', 'PUBLISHED_FIXTURE_HEADLINE',
+          'Email collection language.', %s, 'published', now()
+        )
+        on conflict (id) do nothing
         """,
-        (str(company.id), str(source.id), str(observation.id), str(observation.id)),
+        (
+            event_id,
+            str(company.id),
+            str(ctx["source_id"]),
+            str(ctx["snapshot_id"]),
+            str(ctx["snapshot_id"]),
+            Json([{"text": quote, "section": "Privacy"}]),
+        ),
     )
-    return 1
+    conn.execute(
+        """
+        insert into publication_revisions (
+          id, company_id, observation_id, extraction_run_id, change_event_id,
+          revision_n, state, actor
+        )
+        values (%s, %s, %s, %s, %s, 1, 'published', 'cli:local')
+        """,
+        (
+            revision_id,
+            str(company.id),
+            str(ctx["observation_id"]),
+            run_id,
+            event_id,
+        ),
+    )
+    conn.execute(
+        """
+        insert into published_claims (
+          id, revision_id, candidate_claim_id, claim_key, category, attribute,
+          polarity, quote, snapshot_id, start_offset, end_offset
+        )
+        values (%s, %s, %s, %s, 'data_collected', 'email', 'disclosed', %s, %s, %s, %s)
+        """,
+        (
+            str(stable_uuid("fixture-published-claim", company.slug)),
+            revision_id,
+            claim_id,
+            key,
+            quote,
+            str(ctx["snapshot_id"]),
+            start,
+            start + len(quote),
+        ),
+    )

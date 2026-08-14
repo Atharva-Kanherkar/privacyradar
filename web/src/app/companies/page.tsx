@@ -1,61 +1,66 @@
 import Link from "next/link";
-import { listCompanies } from "@/lib/db";
+import { FreshnessLabel } from "@/components/FreshnessLabel";
+import { SearchForm } from "@/components/SearchForm";
+import { StatePanel } from "@/components/StatePanel";
+import { loadCompanies } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-function statusLabel(
-  health: "pending" | "healthy" | "degraded" | "quarantined" | null,
-): string {
-  if (health === "healthy") return "healthy";
-  if (health === "degraded" || health === "quarantined") return "check delayed";
-  return "pending";
-}
-
-export default async function CompaniesPage() {
-  const companies = await listCompanies();
+export default async function CompaniesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const result = await loadCompanies(q);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12">
+    <main id="main" className="mx-auto max-w-5xl px-6 py-12">
       <h1 className="font-serif text-4xl tracking-tight">Catalog</h1>
       <p className="mt-3 max-w-xl text-[var(--muted)]">
         Hand-picked properties. Each row is a known privacy-policy URL, not a
         guessed sitemap crawl.
       </p>
-      <table className="mt-10 w-full border-collapse text-left text-sm">
-        <thead>
-          <tr className="border-b border-[var(--rule)] text-[var(--muted)]">
-            <th className="py-2 font-normal">Company</th>
-            <th className="py-2 font-normal">Category</th>
-            <th className="py-2 font-normal">Last verified</th>
-            <th className="py-2 font-normal">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {companies.map((c) => (
-            <tr key={c.id} className="border-b border-[var(--rule)]">
-              <td className="py-3">
-                <Link href={`/companies/${c.slug}`} className="hover:underline">
-                  {c.name}
-                </Link>
-              </td>
-              <td className="py-3 text-[var(--muted)]">{c.category}</td>
-              <td className="py-3 font-mono text-xs text-[var(--muted)]">
-                {c.last_verified_at
-                  ? new Date(c.last_verified_at).toLocaleDateString()
-                  : "never"}
-              </td>
-              <td className="py-3 text-[var(--muted)]">
-                {statusLabel(c.source_health)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {companies.length === 0 && (
+      <SearchForm defaultQuery={q ?? ""} label="Filter companies" />
+      {!result.ok ? (
+        <StatePanel title="Catalog unavailable">
+          We could not load companies. This is not an empty catalog.
+        </StatePanel>
+      ) : result.data.length === 0 ? (
         <p className="mt-8 text-[var(--muted)]">
-          Database empty. Run <code className="mono text-[13px]">docker compose up -d</code>{" "}
-          then <code className="mono text-[13px]">privacyradar seed</code>.
+          We have not found a matching company. Try another name, or browse from
+          the home page.
         </p>
+      ) : (
+        <table className="mt-10 w-full border-collapse text-left text-sm">
+          <thead>
+            <tr className="border-b border-[var(--rule)] text-[var(--muted)]">
+              <th className="py-2 font-normal">Company</th>
+              <th className="py-2 font-normal">Category</th>
+              <th className="py-2 font-normal">Region</th>
+              <th className="py-2 font-normal">Freshness</th>
+            </tr>
+          </thead>
+          <tbody>
+            {result.data.map((c) => (
+              <tr key={c.id} className="border-b border-[var(--rule)]">
+                <td className="py-3">
+                  <Link href={`/companies/${c.slug}`} className="hover:underline">
+                    {c.name}
+                  </Link>
+                </td>
+                <td className="py-3 text-[var(--muted)]">{c.category}</td>
+                <td className="py-3 text-[var(--muted)]">{c.region ?? "not labeled"}</td>
+                <td className="py-3">
+                  <FreshnessLabel
+                    lastCheckedAt={c.last_verified_at}
+                    health={c.source_health}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </main>
   );

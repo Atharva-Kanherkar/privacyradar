@@ -12,6 +12,7 @@ export type ChangeEvent = {
   summary: string;
   materiality: string;
   published_at: string;
+  publication_state: "published" | "corrected";
   data_types_added: string[];
   data_types_removed: string[];
   quotes: { text: string; section: string }[];
@@ -72,6 +73,7 @@ export async function listEvents(limit = 40): Promise<ChangeEvent[]> {
         e.summary,
         e.materiality,
         e.published_at,
+        e.publication_state,
         e.data_types_added,
         e.data_types_removed,
         e.quotes,
@@ -167,7 +169,7 @@ export async function queryCompany(
 ): Promise<{
   company: CompanyRow;
   events: ChangeEvent[];
-  extraction: { practices: unknown; model: string; created_at: string } | null;
+  claims: PublishedClaimRow[];
   document_changes: DocumentChangeRow[];
 } | null> {
   if (!sql) {
@@ -214,6 +216,7 @@ export async function queryCompany(
         e.summary,
         e.materiality,
         e.published_at,
+        e.publication_state,
         e.data_types_added,
         e.data_types_removed,
         e.quotes,
@@ -227,18 +230,7 @@ export async function queryCompany(
       limit 30
   `;
 
-  const extracts = await sql<
-    { practices: unknown; model: string; created_at: string }[]
-  >`
-      select x.practices, x.model, x.created_at
-      from extractions x
-      join snapshots snap on snap.id = x.snapshot_id
-      join policy_sources s on s.id = snap.source_id
-      join companies c on c.id = s.company_id
-      where c.slug = ${slug}
-      order by x.created_at desc
-      limit 1
-  `;
+  const claims = await listPublishedClaims(company.id);
 
   const document_changes = await sql<DocumentChangeRow[]>`
       select
@@ -261,7 +253,7 @@ export async function queryCompany(
   return {
     company,
     events,
-    extraction: extracts[0] ?? null,
+    claims,
     document_changes,
   };
 }
@@ -341,11 +333,113 @@ export async function listPublishedClaims(
   `;
 }
 
-export async function listCompanies(): Promise<CompanyRow[]> {
+export type LoadResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: "unconfigured" | "unavailable" };
+
+export async function loadEvents(limit = 40): Promise<LoadResult<ChangeEvent[]>> {
+  if (!sql) return { ok: false, error: "unconfigured" };
   try {
-    return await queryCompanies();
+    return { ok: true, data: await listEvents(limit) };
   } catch {
-    return [];
+    return { ok: false, error: "unavailable" };
+  }
+}
+
+export async function loadCompanies(
+  q?: string,
+): Promise<LoadResult<CompanyRow[]>> {
+  if (!sql) return { ok: false, error: "unconfigured" };
+  try {
+    return { ok: true, data: await queryCompanies(q) };
+  } catch {
+    return { ok: false, error: "unavailable" };
+  }
+}
+
+export async function loadCompany(slug: string): Promise<
+  LoadResult<NonNullable<Awaited<ReturnType<typeof queryCompany>>> | null>
+> {
+  if (!sql) return { ok: false, error: "unconfigured" };
+  try {
+    return { ok: true, data: await queryCompany(slug) };
+  } catch {
+    return { ok: false, error: "unavailable" };
+  }
+}
+
+export async function getPublishedChange(id: string): Promise<ChangeEvent | null> {
+  if (!sql) return null;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return null;
+  }
+  const rows = await sql<ChangeEvent[]>`
+    select
+      e.id,
+      e.headline,
+      e.summary,
+      e.materiality,
+      e.published_at,
+      e.publication_state,
+      e.data_types_added,
+      e.data_types_removed,
+      e.quotes,
+      c.slug,
+      c.name
+    from change_events e
+    join companies c on c.id = e.company_id
+    where e.id = ${id}::uuid
+      and e.publication_state in ('published', 'corrected')
+    limit 1
+  `;
+  return rows[0] ?? null;
+}
+
+export async function loadPublishedChange(
+  id: string,
+): Promise<LoadResult<ChangeEvent | null>> {
+  if (!sql) return { ok: false, error: "unconfigured" };
+  try {
+    return { ok: true, data: await getPublishedChange(id) };
+  } catch {
+    return { ok: false, error: "unavailable" };
+  }
+}
+
+export type CorrectionRow = {
+  id: string;
+  company_slug: string;
+  company_name: string;
+  public_note: string;
+  state: string;
+  resolved_at: string | null;
+};
+
+export async function listPublicCorrections(): Promise<CorrectionRow[]> {
+  if (!sql) return [];
+  return sql<CorrectionRow[]>`
+    select
+      corr.id,
+      c.slug as company_slug,
+      c.name as company_name,
+      corr.public_note,
+      corr.state,
+      corr.resolved_at
+    from corrections corr
+    join companies c on c.id = corr.company_id
+    where corr.state in ('corrected', 'declined')
+      and corr.public_note is not null
+    order by corr.resolved_at desc nulls last
+    limit 50
+  `;
+}
+
+export async function loadPublicCorrections(): Promise<LoadResult<CorrectionRow[]>> {
+  if (!sql) return { ok: false, error: "unconfigured" };
+  try {
+    return { ok: true, data: await listPublicCorrections() };
+  } catch {
+    return { ok: false, error: "unavailable" };
   }
 }
 

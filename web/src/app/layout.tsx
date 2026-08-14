@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { Newsreader, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import { Newsreader, Geist_Mono, Source_Sans_3 } from "next/font/google";
 import type { ReactNode } from "react";
+import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
 const serif = Newsreader({
@@ -10,47 +10,41 @@ const serif = Newsreader({
   display: "swap",
 });
 
+const sans = Source_Sans_3({
+  variable: "--font-source-sans",
+  subsets: ["latin"],
+  display: "swap",
+});
+
 const mono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "privacyradar",
+  title: {
+    default: "PrivacyRadar",
+    template: "%s · PrivacyRadar",
+  },
   description:
-    "live inventory of what data companies take, and what just changed in their privacy policies.",
+    "Evidence-backed disclosed privacy practices and material policy changes. Dated. Correctable.",
+  metadataBase: new URL("https://privacyradar.local"),
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${serif.variable} ${mono.variable} h-full antialiased`}
+      className={`${serif.variable} ${sans.variable} ${mono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[var(--paper)] text-[var(--ink)]">
-        <header className="border-b border-[var(--rule)]">
-            <div className="mx-auto flex max-w-5xl flex-wrap items-baseline justify-between gap-x-6 gap-y-3 px-6 py-5">
-            <Link href="/" className="font-serif text-2xl tracking-tight">
-              privacyradar
-            </Link>
-            <nav className="flex gap-5 text-sm">
-              <Link href="/companies" className="hover:underline">
-                Companies
-              </Link>
-              <Link href="/about" className="hover:underline">
-                About
-              </Link>
-              <Link href="/feed.xml" className="hover:underline">
-                RSS
-              </Link>
-            </nav>
-          </div>
-        </header>
+      <body className="flex min-h-full flex-col bg-[var(--paper)] text-[var(--ink)]">
+        <SiteHeader />
         <div className="flex-1">{children}</div>
         <footer className="border-t border-[var(--rule)]">
-          <p className="mx-auto max-w-5xl px-6 py-4 text-xs text-[var(--muted)]">
-            Not legal advice. Analysis of publicly posted policies, with quotes.
-            Hash-first crawler. Models only run when the text actually changes.
+          <p className="mx-auto max-w-5xl px-6 py-4 font-sans text-xs text-[var(--muted)]">
+            Not legal advice. We report what companies disclose in captured
+            policies, with quotes. A missing fetch is not an empty policy.
           </p>
         </footer>
       </body>
