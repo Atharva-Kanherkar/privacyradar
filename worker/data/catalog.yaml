@@ -14,7 +14,7 @@ companies:
     category: big-tech
     cohort: seed
     region: global
-    privacy_url: https://www.apple.com/legal/privacy/
+    privacy_url: https://www.apple.com/legal/privacy/en-ww/
   - slug: meta
     name: Meta
     website: https://meta.com
@@ -28,7 +28,7 @@ companies:
     category: big-tech
     cohort: seed
     region: global
-    privacy_url: https://privacy.microsoft.com/en-us/privacystatement
+    privacy_url: https://www.microsoft.com/en-us/privacy/privacystatement
   - slug: amazon
     name: Amazon
     website: https://amazon.com
@@ -63,7 +63,7 @@ companies:
     category: consumer
     cohort: seed
     region: global
-    privacy_url: https://www.netflix.com/privacy
+    privacy_url: https://help.netflix.com/legal/privacy
   - slug: stripe
     name: Stripe
     website: https://stripe.com
@@ -99,7 +99,7 @@ companies:
     category: productivity
     cohort: c1
     region: global
-    privacy_url: https://www.notion.com/privacy
+    privacy_url: https://www.notion.com/trust/privacy-policy
   - slug: zoom
     name: Zoom
     website: https://zoom.us
@@ -113,7 +113,7 @@ companies:
     category: social
     cohort: c1
     region: global
-    privacy_url: https://www.reddit.com/policies/privacy-policy
+    privacy_url: https://old.reddit.com/wiki/privacypolicy
   - slug: linkedin
     name: LinkedIn
     website: https://linkedin.com
