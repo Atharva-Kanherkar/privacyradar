@@ -59,3 +59,4 @@ def test_public_sql_ignores_unpublished_and_candidates() -> None:
     assert "extraction_runs" not in text
     assert "publication_state = 'published'" in text
     assert "publication_state in ('published', 'corrected')" in text
+    assert "rolls_back_id" in text

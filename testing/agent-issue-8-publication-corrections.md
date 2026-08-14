@@ -130,6 +130,7 @@ privacyradar eval-materiality
 - `test_publish_run_is_atomic` (validator fail → zero published_claims and no revision)
 - `test_concurrent_publish_serializes` (advisory lock; one winner)
 - `test_rollback_preserves_prior_revision_row`
+- `test_rollback_only_revision_clears_current`
 - `test_correction_creates_replacement_revision`
 - `test_review_actions_are_append_only`
 - `test_public_sql_ignores_unpublished_and_candidates`
