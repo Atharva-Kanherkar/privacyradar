@@ -1,5 +1,5 @@
 -- Current-head schema reference. Apply with `privacyradar migrate`.
--- Docker-compose may bootstrap from this file; migrate still records 0001–0008
+-- Docker-compose may bootstrap from this file; migrate still records 0001–0009
 -- and installs append-only triggers. This file matches the end state of
 -- numbered migrations (tables and functions; some triggers are migration-only).
 
@@ -11,6 +11,8 @@ create table if not exists companies (
   name          text not null,
   website       text not null,
   category      text not null default 'consumer',
+  cohort        text not null default 'seed',
+  owner         text not null default 'unassigned',
   created_at    timestamptz not null default now()
 );
 
@@ -761,3 +763,39 @@ create table if not exists notification_fixture_inbox (
 
 create index if not exists notification_fixture_inbox_hash_idx
   on notification_fixture_inbox (email_hash, created_at desc);
+
+create table if not exists catalog_cohorts (
+  key         text primary key,
+  enabled     boolean not null,
+  target_n    integer not null,
+  notes       text,
+  updated_at  timestamptz not null default now()
+);
+
+insert into catalog_cohorts (key, enabled, target_n, notes)
+values
+  ('seed', true, 10, 'Current hand-picked catalog. Not a 500-company claim.'),
+  ('c1', false, 25, 'Disabled until two health cycles meet fetch and evidence gates.')
+on conflict (key) do nothing;
+
+create table if not exists company_requests (
+  id           uuid primary key default gen_random_uuid(),
+  name         text,
+  website      text not null,
+  category     text,
+  status       text not null,
+  duplicate_of uuid,
+  created_at   timestamptz not null default now(),
+  check (status in ('requested', 'duplicate', 'accepted', 'declined'))
+);
+
+create index if not exists company_requests_host_idx
+  on company_requests (website, created_at desc);
+
+create table if not exists catalog_health_snapshots (
+  id                   uuid primary key default gen_random_uuid(),
+  fetch_success_pct    numeric not null,
+  evidence_valid_pct   numeric not null,
+  created_at           timestamptz not null default now()
+);
+

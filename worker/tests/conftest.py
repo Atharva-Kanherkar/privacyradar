@@ -120,6 +120,8 @@ def db_url(migrated_database_url: str) -> str:
         conn.execute(
             """
             truncate
+              catalog_health_snapshots,
+              company_requests,
               notification_fixture_inbox,
               notification_deliveries,
               notification_outbox,

@@ -105,6 +105,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     fixture_pub.add_argument("--slug", required=True)
     fixture_pub.add_argument("--headline", required=True)
+    sub.add_parser("catalog-validate", help="Validate catalog.yaml without writing")
+    health = sub.add_parser("catalog-health", help="Print catalog health and the expansion gate")
+    health.add_argument("--record", action="store_true")
 
     args = parser.parse_args(argv)
     if args.cmd == "migrate":
@@ -387,6 +390,25 @@ def main(argv: list[str] | None = None) -> int:
             print(f"fixture-publish-change failed: {type(exc).__name__}: {exc}", file=sys.stderr)
             return 1
         print(f"event_id={event_id}")
+        return 0
+    if args.cmd == "catalog-validate":
+        from privacyradar.catalog_ops import validate_catalog
+
+        errors = validate_catalog()
+        if errors:
+            for item in errors:
+                print(item, file=sys.stderr)
+            return 1
+        print("catalog ok")
+        return 0
+    if args.cmd == "catalog-health":
+        from privacyradar.catalog_ops import health_report
+
+        with connect() as conn:
+            catalog_health = health_report(conn, record=args.record)
+            conn.commit()
+        for key, value in catalog_health.items():
+            print(f"{key}={value}")
         return 0
     return 1
 

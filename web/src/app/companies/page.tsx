@@ -19,7 +19,11 @@ export default async function CompaniesPage({
       <h1 className="font-serif text-4xl tracking-tight">Catalog</h1>
       <p className="mt-3 max-w-xl text-[var(--muted)]">
         Hand-picked properties. Each row is a known privacy-policy URL, not a
-        guessed sitemap crawl.
+        guessed sitemap crawl.{" "}
+        <Link href="/companies/request" className="underline">
+          Request a company
+        </Link>
+        — nominations are requested, not monitored.
       </p>
       <SearchForm defaultQuery={q ?? ""} label="Filter companies" />
       {!result.ok ? (

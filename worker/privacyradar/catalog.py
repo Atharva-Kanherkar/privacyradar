@@ -21,24 +21,42 @@ def load_catalog(path: Path | None = None) -> list[dict[str, Any]]:
 
 def seed_catalog() -> int:
     companies = load_catalog()
+    seeded = 0
     with connect() as conn:
+        enabled = {
+            str(row["key"])
+            for row in conn.execute("select key from catalog_cohorts where enabled").fetchall()
+        }
+        if not enabled:
+            enabled = {"seed"}
         with conn.cursor() as cur:
             for row in companies:
+                cohort = str(row.get("cohort") or "seed")
+                if cohort not in enabled:
+                    continue
                 cur.execute(
                     """
-                    insert into companies (slug, name, website, category)
-                    values (%s, %s, %s, %s)
+                    insert into companies (slug, name, website, category, cohort)
+                    values (%s, %s, %s, %s, %s)
                     on conflict (slug) do update
                       set name = excluded.name,
                           website = excluded.website,
-                          category = excluded.category
+                          category = excluded.category,
+                          cohort = excluded.cohort
                     returning id
                     """,
-                    (row["slug"], row["name"], row["website"], row["category"]),
+                    (
+                        row["slug"],
+                        row["name"],
+                        row["website"],
+                        row["category"],
+                        cohort,
+                    ),
                 )
                 company = cur.fetchone()
                 assert company is not None
                 company_id = company["id"]
+                seeded += 1
                 try:
                     classify_url(str(row["privacy_url"]))
                 except SsrfError:
@@ -50,12 +68,12 @@ def seed_catalog() -> int:
                 cur.execute(
                     """
                     insert into policy_sources (company_id, kind, url, region)
-                    values (%s, 'privacy', %s, 'global')
+                    values (%s, 'privacy', %s, %s)
                     on conflict (company_id, kind, region) do update
                       set url = excluded.url,
                           enabled = true
                     """,
-                    (company_id, row["privacy_url"]),
+                    (company_id, row["privacy_url"], str(row.get("region") or "global")),
                 )
         conn.commit()
-    return len(companies)
+    return seeded
