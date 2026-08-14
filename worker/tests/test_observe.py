@@ -258,7 +258,7 @@ def test_failed_fetch_does_not_replace_current_snapshot(db_url: str) -> None:
     assert after["current_snapshot_id"] == before["current_snapshot_id"]
     assert after["health_status"] == "degraded"
     assert after["last_failure_code"] == "timeout"
-    assert after["consecutive_failures"] == 1
+    assert after["consecutive_failures"] == 0
     assert after["last_success_at"] is not None
     assert snapshots is not None and snapshots["n"] == 1
     assert observations is not None and observations["n"] == 1
@@ -435,7 +435,7 @@ def test_five_failures_quarantine_source(db_url: str) -> None:
     source = _seed(db_url, "quarantine-co")
     with _connect(db_url) as conn:
         for _ in range(5):
-            observe_source(conn, source, _fetch(str(source["url"]), "", error="timeout"))
+            observe_source(conn, source, _fetch(str(source["url"]), "", error="ssrf"))
         conn.commit()
         row = conn.execute(
             "select health_status, consecutive_failures from policy_sources where id = %s",

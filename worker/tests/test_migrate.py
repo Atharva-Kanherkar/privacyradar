@@ -55,6 +55,7 @@ def test_migrate_fresh_database_to_head(empty_database_url: str) -> None:
     assert _tables(empty_database_url) >= REQUIRED_TABLES
     ledger = _ledger(empty_database_url)
     assert [row[0] for row in ledger] == HEAD_VERSIONS
+    assert len(ledger) == 3
     assert ledger[0][1] == INITIAL_CHECKSUM
 
 

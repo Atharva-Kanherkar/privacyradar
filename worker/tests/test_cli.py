@@ -14,6 +14,12 @@ def test_cli_migrate_help() -> None:
     assert exc.value.code == 0
 
 
+def test_cli_crawl_help() -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(["crawl", "--help"])
+    assert exc.value.code == 0
+
+
 def test_cli_unknown_command_exits_nonzero() -> None:
     try:
         main(["not-a-command"])

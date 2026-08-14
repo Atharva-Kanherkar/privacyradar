@@ -139,7 +139,9 @@ def source_disable(conn: Any, source_id: str, *, actor: str) -> str:
 def source_enable(conn: Any, source_id: str, *, actor: str, now: datetime | None = None) -> str:
     actor = validate_actor(actor)
     clock = now or datetime.now(UTC)
-    _require_source(conn, source_id)
+    source = _require_source(conn, source_id)
+    if source["health_status"] == "quarantined":
+        raise OperatorError("quarantined; use source-retry")
     action_id = str(uuid4())
     _audit(
         conn,

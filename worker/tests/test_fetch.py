@@ -80,6 +80,7 @@ def test_robots_fetch_failure_fail_closed_on_default_checker() -> None:
     )
     assert result.error == "robots"
     assert hop.calls == ["https://example.test/robots.txt"]
+def test_robots_disallow_blocks_without_fetching_body() -> None:
     hop = FakeHop([HopResponse(200, {"content-type": "text/html"}, POLICY_HTML.encode())])
     resolver = FakeResolver({"example.test": [PUBLIC_IP]})
     result = fetch_policy_url(
@@ -135,17 +136,24 @@ def test_ssrf_redirect_to_private_ip_does_not_follow() -> None:
     assert hop.calls == ["https://example.test/privacy"]
 
 
-def test_fetch_result_does_not_put_exception_message_in_error_code() -> None:
-    hop = FakeHop([HopResponse(0, {}, b"", error_code="timeout")])
+def test_fetch_result_does_not_put_exception_message_in_error_code(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def boom(*_args: object, **_kwargs: object) -> None:
+        raise TimeoutError("secret details HTTPSConnectionPool")
+
+    monkeypatch.setattr("privacyradar.fetch.socket.create_connection", boom)
     resolver = FakeResolver({"example.test": [PUBLIC_IP]})
     result = fetch_policy_url(
         "https://example.test/privacy",
         resolver=resolver,
         robots=StaticRobots(True),
-        hop_client=hop,
     )
     assert result.error == "timeout"
-    assert "Exception" not in (result.error or "")
+    assert "secret" not in (result.error or "")
+    assert "HTTPSConnectionPool" not in (result.html or "")
+    assert "secret" not in (result.markdown or "")
+    assert result.body == b""
 
 
 class _FixtureHandler(BaseHTTPRequestHandler):
@@ -284,3 +292,27 @@ def test_local_fixture_http_matrix(
     # Production classifier still rejects raw loopback URLs.
     with pytest.raises(SsrfError):
         classify_url("http://127.0.0.1/")
+
+
+def test_local_fixture_http_timeout(
+    fixture_http: tuple[str, int, SsrfPolicy, FakeResolver],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    host, port, policy, resolver = fixture_http
+    monkeypatch.setattr("privacyradar.fetch.FETCH_TIMEOUT_SECONDS", 0.1)
+    _FixtureHandler.routes = {
+        "/hang": {
+            "status": 200,
+            "body": b"too late",
+            "sleep": 1.0,
+            "headers": {"Content-Type": "text/html"},
+        }
+    }
+    result = fetch_policy_url(
+        f"http://{host}:{port}/hang",
+        resolver=resolver,
+        policy=policy,
+        robots=StaticRobots(True),
+    )
+    assert result.error == "timeout"
+    assert "too late" not in (result.html or "")

@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-from privacyradar.robots import CachedRobots, FailClosedRobots, StaticRobots, path_allowed
+from datetime import UTC, datetime, timedelta
+
+from privacyradar.robots import (
+    ROBOTS_CACHE_TTL,
+    CachedRobots,
+    FailClosedRobots,
+    StaticRobots,
+    path_allowed,
+)
 from privacyradar.ssrf import ResolvedTarget
 
 
@@ -28,6 +36,25 @@ def test_robots_fetch_failure_fail_closed() -> None:
     checker = CachedRobots(boom)
     assert checker.allowed(_target()) is False
     assert FailClosedRobots().allowed(_target()) is False
+
+
+def test_robots_cache_expires_after_ttl() -> None:
+    calls: list[str] = []
+
+    def load(_url: str) -> str:
+        calls.append(_url)
+        return "User-agent: *\nAllow: /\n"
+
+    checker = CachedRobots(load)
+    assert checker.allowed(_target()) is True
+    assert checker.allowed(_target()) is True
+    assert len(calls) == 1
+    origin = "https://example.test"
+    text, fetched_at = checker._cache[origin]
+    checker._cache[origin] = (text, fetched_at - ROBOTS_CACHE_TTL - timedelta(seconds=1))
+    assert checker.allowed(_target()) is True
+    assert len(calls) == 2
+    assert fetched_at.tzinfo is UTC or fetched_at.tzinfo is not None
 
 
 def test_path_allowed_respects_star_agent() -> None:

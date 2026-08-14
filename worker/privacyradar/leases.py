@@ -13,7 +13,8 @@ from uuid import uuid4
 
 from privacyradar.crawl import FetchResult
 from privacyradar.fetch import fetch_policy_url
-from privacyradar.observe import HEALTH_QUARANTINE_AFTER, observe_source
+from privacyradar.hashing import NORMALIZER_VERSION
+from privacyradar.observe import HEALTH_QUARANTINE_AFTER, _health_after_failure, observe_source
 from privacyradar.render import with_render_fallback
 from privacyradar.retry import (
     HTTP_CONCURRENCY,
@@ -27,6 +28,9 @@ from privacyradar.settings import settings
 from privacyradar.ssrf import registrable_domain
 
 logger = logging.getLogger(__name__)
+
+# Serializes claimers so per-domain/global caps cannot race across connections.
+CLAIM_ADVISORY_LOCK_KEY = 8462016
 
 QUARANTINE_REASON_BY_CODE = {
     "ssrf": "ssrf",
@@ -52,6 +56,18 @@ class ClaimedJob:
 def _domain_from_url(url: str) -> str:
     hostname = urlparse(url).hostname or url
     return registrable_domain(hostname)
+
+
+def _invoke_fetch(fetch_fn: Any, source: dict[str, Any]) -> FetchResult:
+    url = str(source["url"])
+    try:
+        return fetch_fn(
+            url,
+            etag=source.get("etag"),
+            last_modified=source.get("last_modified"),
+        )
+    except TypeError:
+        return fetch_fn(url)
 
 
 def schedule_due_sources(conn: Any, now: datetime) -> int:
@@ -111,6 +127,7 @@ def _leased_domains(conn: Any, now: datetime) -> set[str]:
 
 
 def claim_fetch_job(conn: Any, worker_id: str, now: datetime) -> ClaimedJob | None:
+    conn.execute("select pg_advisory_xact_lock(%s)", (CLAIM_ADVISORY_LOCK_KEY,))
     if _active_lease_count(conn, now) >= HTTP_CONCURRENCY:
         return None
     leased_domains = _leased_domains(conn, now)
@@ -232,9 +249,11 @@ def finish_job(
     if source is None:
         return
     job = conn.execute(
-        "select attempt_no from fetch_jobs where id = %s for update",
+        "select attempt_no, status from fetch_jobs where id = %s for update",
         (job_id,),
     ).fetchone()
+    if job is None or job["status"] != "leased":
+        return
     attempt_no = int(job["attempt_no"] if job else 0) + 1
     retry_count = int(source["retry_count"] or 0)
     consecutive = int(source["consecutive_failures"] or 0)
@@ -245,6 +264,7 @@ def finish_job(
     q_at = None
 
     if error_code is None and observed_health == "healthy":
+        consecutive = 0
         next_retry = 0
         due_at = next_due_at(now, None, 0, rng=rng)
         job_status = "succeeded"
@@ -255,6 +275,9 @@ def finish_job(
     else:
         next_retry = 0
         due_at = next_due_at(now, error_code, MAX_RETRIES_PER_WINDOW, rng=rng)
+        if is_retryable(error_code):
+            consecutive += 1
+            observed_health = _health_after_failure(consecutive)
         q_reason = _quarantine_reason(error_code, consecutive)
         if observed_health == "quarantined" or q_reason:
             job_status = "quarantined"
@@ -285,13 +308,25 @@ def finish_job(
             lease_expires_at = null,
             retry_count = %s,
             due_at = %s,
+            consecutive_failures = %s,
+            health_status = %s,
             etag = coalesce(%s, etag),
             last_modified = coalesce(%s, last_modified),
             quarantine_reason = %s,
             quarantined_at = %s
         where id = %s
         """,
-        (next_retry, due_at, etag, last_modified, q_reason, q_at, source_id),
+        (
+            next_retry,
+            due_at,
+            consecutive,
+            observed_health,
+            etag,
+            last_modified,
+            q_reason,
+            q_at,
+            source_id,
+        ),
     )
 
 
@@ -307,7 +342,7 @@ def run_claimed_job(
     fetch_fn = fetch if fetch is not None else fetch_policy_url
     source = claimed.source
     try:
-        fetched: FetchResult = fetch_fn(source["url"])
+        fetched: FetchResult = _invoke_fetch(fetch_fn, source)
         fetched = with_render_fallback(
             str(source["url"]),
             fetched,
@@ -338,6 +373,25 @@ def run_claimed_job(
         last_modified = None
         http_status = 0
         outcome = "failed"
+        conn.execute(
+            """
+            insert into source_attempts (
+              id, source_id, started_at, finished_at, strategy, status,
+              http_status, content_type, request_url, resolved_url, error_code,
+              byte_count, normalizer_version
+            )
+            values (%s, %s, %s, %s, 'http', 'failed', 0, '', %s, %s, 'network', 0, %s)
+            """,
+            (
+                str(uuid4()),
+                source["source_id"],
+                clock,
+                clock,
+                source["url"],
+                source["url"],
+                NORMALIZER_VERSION,
+            ),
+        )
         job_row = conn.execute(
             "select attempt_no from fetch_jobs where id = %s",
             (claimed.job_id,),
@@ -410,14 +464,18 @@ def drain_once(
     clock = now or datetime.now(UTC)
     owner = worker_id or f"cli:{os.getpid()}"
     schedule_due_sources(conn, clock)
+    conn.commit()
     results: list[str] = []
     while True:
         claimed = claim_fetch_job(conn, owner, clock)
         if claimed is None:
+            conn.commit()
             break
+        conn.commit()
         results.append(
             run_claimed_job(conn, claimed, fetch=fetch, now=clock, rng=rng or Random(0))
         )
+        conn.commit()
     return results
 
 

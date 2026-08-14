@@ -17,6 +17,10 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("migrate", help="Apply numbered forward-only SQL migrations")
+    sub.add_parser(
+        "crawl",
+        help="Claim due fetch jobs via Postgres even when Redis is down",
+    )
     sub.add_parser("seed", help="Load worker/data/catalog.yaml into Postgres")
     sub.add_parser(
         "seed-fixtures",

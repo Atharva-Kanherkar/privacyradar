@@ -14,6 +14,7 @@ from psycopg.types.json import Json
 from privacyradar.classify import Classification, classify_fetch
 from privacyradar.crawl import FetchResult
 from privacyradar.hashing import NORMALIZER_VERSION, changed_sections
+from privacyradar.retry import is_retryable
 
 logger = logging.getLogger(__name__)
 
@@ -90,8 +91,13 @@ def observe_source(
     consecutive = int(current["consecutive_failures"] or 0)
 
     if not classification.valid:
-        consecutive += 1
-        health = _health_after_failure(consecutive)
+        if is_retryable(classification.error_code):
+            health = "degraded"
+            if str(current["health_status"] or "") == "quarantined":
+                health = "quarantined"
+        else:
+            consecutive += 1
+            health = _health_after_failure(consecutive)
         conn.execute(
             """
             insert into source_attempts (
