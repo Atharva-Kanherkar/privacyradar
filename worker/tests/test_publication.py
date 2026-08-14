@@ -11,6 +11,7 @@ from privacyradar.claims import CandidateClaim, EvidenceQuote
 from privacyradar.extract import extract_observation
 from privacyradar.publication import (
     PublicationError,
+    publish_event,
     publish_run,
     publish_stats,
     reject_event,
@@ -113,9 +114,10 @@ def test_quote_missing_cannot_publish(db_url: str) -> None:
         assert validate_claim_for_publication(conn, bad_id) == "quote_missing"
         with pytest.raises(PublicationError, match="quote_missing"):
             publish_run(conn, run_id, actor="cli:local")
-        conn.rollback()
         n = conn.execute("select count(*) as n from publication_revisions").fetchone()
+        claims = conn.execute("select count(*) as n from published_claims").fetchone()
         assert n is not None and n["n"] == 0
+        assert claims is not None and claims["n"] == 0
 
 
 def test_offset_mismatch_cannot_publish(db_url: str) -> None:
@@ -146,6 +148,10 @@ def test_offset_mismatch_cannot_publish(db_url: str) -> None:
             (str(uuid4()), bad_id, str(snap["snapshot_id"]), QUOTE),
         )
         assert validate_claim_for_publication(conn, bad_id) == "offset_mismatch"
+        with pytest.raises(PublicationError, match="offset_mismatch"):
+            publish_run(conn, run_id, actor="cli:local")
+        n = conn.execute("select count(*) as n from publication_revisions").fetchone()
+        assert n is not None and n["n"] == 0
 
 
 def test_unsupported_claim_cannot_publish(db_url: str) -> None:
@@ -207,7 +213,38 @@ def test_malformed_model_output_cannot_publish(db_url: str) -> None:
 
 
 def test_publish_run_is_atomic(db_url: str) -> None:
-    test_quote_missing_cannot_publish(db_url)
+    _, _, run_id = _seed_run(db_url, slug="atomic-co")
+    with _connect(db_url) as conn:
+        snap = conn.execute(
+            "select snapshot_id from extraction_runs where id = %s", (run_id,)
+        ).fetchone()
+        assert snap is not None
+        bad_id = str(uuid4())
+        conn.execute(
+            """
+            insert into candidate_claims (
+              id, run_id, claim_key, category, attribute, polarity,
+              confidence, validation_state
+            )
+            values (%s, %s, 'atomkey', 'data_collected', 'email', 'disclosed', 1, 'valid')
+            """,
+            (bad_id, run_id),
+        )
+        conn.execute(
+            """
+            insert into evidence_spans (
+              id, claim_id, snapshot_id, quote, validation_result
+            )
+            values (%s, %s, %s, 'absent quote', 'missing')
+            """,
+            (str(uuid4()), bad_id, str(snap["snapshot_id"])),
+        )
+        with pytest.raises(PublicationError):
+            publish_run(conn, run_id, actor="cli:local")
+        revs = conn.execute("select count(*) as n from publication_revisions").fetchone()
+        published = conn.execute("select count(*) as n from published_claims").fetchone()
+        assert revs is not None and revs["n"] == 0
+        assert published is not None and published["n"] == 0
 
 
 def test_snapshot_mismatch_cannot_publish(db_url: str) -> None:
@@ -244,6 +281,10 @@ def test_snapshot_mismatch_cannot_publish(db_url: str) -> None:
             (str(uuid4()), bad_id, other, QUOTE),
         )
         assert validate_claim_for_publication(conn, bad_id) == "snapshot_mismatch"
+        with pytest.raises(PublicationError, match="snapshot_mismatch"):
+            publish_run(conn, run_id, actor="cli:local")
+        n = conn.execute("select count(*) as n from publication_revisions").fetchone()
+        assert n is not None and n["n"] == 0
 
 
 def test_forbidden_publication_transition(db_url: str) -> None:
@@ -402,3 +443,44 @@ def test_publish_stats_has_integer_counts(db_url: str) -> None:
         stats = publish_stats(conn)
     assert stats["published_revisions"] >= 1
     assert "postgresql://" not in str(stats)
+
+
+def test_publish_event_promotes_review_pending(db_url: str) -> None:
+    from psycopg.types.json import Json
+
+    company_id, observation_id, _run_id = _seed_run(db_url, slug="event-co")
+    with _connect(db_url) as conn:
+        source = conn.execute(
+            "select id from policy_sources where company_id = %s", (company_id,)
+        ).fetchone()
+        snap = conn.execute(
+            "select snapshot_id from observations where id = %s", (observation_id,)
+        ).fetchone()
+        assert source is not None and snap is not None
+        event = conn.execute(
+            """
+            insert into change_events (
+              company_id, source_id, from_snapshot, to_snapshot,
+              materiality, headline, summary, quotes, publication_state
+            )
+            values (%s, %s, %s, %s, 'material', 'Held change', 's', %s, 'review_pending')
+            returning id
+            """,
+            (
+                company_id,
+                str(source["id"]),
+                str(snap["snapshot_id"]),
+                str(snap["snapshot_id"]),
+                Json([{"text": QUOTE, "section": "Privacy"}]),
+            ),
+        ).fetchone()
+        assert event is not None
+        publish_event(conn, str(event["id"]), actor="cli:local")
+        conn.commit()
+        row = conn.execute(
+            "select publication_state, published_at from change_events where id = %s",
+            (str(event["id"]),),
+        ).fetchone()
+        assert row is not None
+        assert row["publication_state"] == "published"
+        assert row["published_at"] is not None

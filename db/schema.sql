@@ -410,6 +410,16 @@ insert into product_switches (key, enabled)
 values ('publication', true)
 on conflict (key) do nothing;
 
+create or replace function privacyradar_reject_mutation()
+returns trigger
+language plpgsql
+as $$
+begin
+  raise exception '% is append-only', tg_table_name
+    using errcode = 'restrict_violation';
+end;
+$$;
+
 create or replace function privacyradar_reject_bad_published_claim()
 returns trigger
 language plpgsql
@@ -417,6 +427,7 @@ as $$
 declare
   body text;
   claim_state text;
+  run_snap uuid;
 begin
   select validation_state into claim_state
   from candidate_claims
@@ -428,6 +439,19 @@ begin
   select markdown into body from snapshots where id = new.snapshot_id;
   if body is null or position(new.quote in body) = 0 then
     raise exception 'published claim quote missing'
+      using errcode = 'check_violation';
+  end if;
+  if substring(body from new.start_offset + 1 for (new.end_offset - new.start_offset))
+     is distinct from new.quote then
+    raise exception 'published claim offset mismatch'
+      using errcode = 'check_violation';
+  end if;
+  select r.snapshot_id into run_snap
+  from publication_revisions pr
+  join extraction_runs r on r.id = pr.extraction_run_id
+  where pr.id = new.revision_id;
+  if run_snap is distinct from new.snapshot_id then
+    raise exception 'published claim snapshot mismatch'
       using errcode = 'check_violation';
   end if;
   return new;
@@ -464,4 +488,19 @@ drop trigger if exists corrections_guard on corrections;
 create trigger corrections_guard
   before update or delete on corrections
   for each row execute procedure privacyradar_corrections_guard();
+
+drop trigger if exists publication_revisions_append_only on publication_revisions;
+create trigger publication_revisions_append_only
+  before update or delete on publication_revisions
+  for each row execute procedure privacyradar_reject_mutation();
+
+drop trigger if exists published_claims_append_only on published_claims;
+create trigger published_claims_append_only
+  before update or delete on published_claims
+  for each row execute procedure privacyradar_reject_mutation();
+
+drop trigger if exists review_actions_append_only on review_actions;
+create trigger review_actions_append_only
+  before update or delete on review_actions
+  for each row execute procedure privacyradar_reject_mutation();
 

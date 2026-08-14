@@ -23,6 +23,7 @@ test.describe("public smoke", () => {
     await expect(page.getByRole("navigation")).toBeVisible();
     await expect(page.getByRole("link", { name: "Companies" })).toBeVisible();
     await expect(page.getByRole("link", { name: "About" })).toBeVisible();
+    await expect(page.getByText("UNPUBLISHED_FIXTURE_HEADLINE")).toHaveCount(0);
 
     expect((await page.goto("/companies"))?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1, name: "Catalog" })).toBeVisible();
@@ -74,7 +75,6 @@ test.describe("public smoke", () => {
     expect(feed.status()).toBe(200);
     expect(feed.headers()["content-type"] ?? "").toMatch(/xml/);
     expect(await feed.text()).not.toContain("UNPUBLISHED_FIXTURE_HEADLINE");
-    await expect(page.getByText("UNPUBLISHED_FIXTURE_HEADLINE")).toHaveCount(0);
 
     const missing = await request.get("/companies/this-slug-does-not-exist");
     expect(missing.status()).toBe(404);

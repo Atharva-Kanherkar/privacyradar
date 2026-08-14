@@ -29,6 +29,9 @@ alter table change_events
   alter column published_at drop not null;
 
 alter table change_events
+  alter column published_at drop default;
+
+alter table change_events
   add column if not exists created_at timestamptz;
 
 update change_events
@@ -145,6 +148,7 @@ as $$
 declare
   body text;
   claim_state text;
+  run_snap uuid;
 begin
   select validation_state into claim_state
   from candidate_claims
@@ -156,6 +160,19 @@ begin
   select markdown into body from snapshots where id = new.snapshot_id;
   if body is null or position(new.quote in body) = 0 then
     raise exception 'published claim quote missing'
+      using errcode = 'check_violation';
+  end if;
+  if substring(body from new.start_offset + 1 for (new.end_offset - new.start_offset))
+     is distinct from new.quote then
+    raise exception 'published claim offset mismatch'
+      using errcode = 'check_violation';
+  end if;
+  select r.snapshot_id into run_snap
+  from publication_revisions pr
+  join extraction_runs r on r.id = pr.extraction_run_id
+  where pr.id = new.revision_id;
+  if run_snap is distinct from new.snapshot_id then
+    raise exception 'published claim snapshot mismatch'
       using errcode = 'check_violation';
   end if;
   return new;

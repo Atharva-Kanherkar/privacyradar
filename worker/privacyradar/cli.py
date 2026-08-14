@@ -56,6 +56,10 @@ def main(argv: list[str] | None = None) -> int:
     publish = sub.add_parser("publish-run", help="Publish validated claims from an extraction run")
     publish.add_argument("run_id")
     publish.add_argument("--actor", required=True)
+    publish.add_argument("--change-event-id")
+    publish_ev = sub.add_parser("publish-event", help="Publish a review_pending change event")
+    publish_ev.add_argument("event_id")
+    publish_ev.add_argument("--actor", required=True)
     reject = sub.add_parser("reject-event", help="Reject a change event")
     reject.add_argument("event_id")
     reject.add_argument("--actor", required=True)
@@ -207,7 +211,9 @@ def main(argv: list[str] | None = None) -> int:
 
         try:
             with connect() as conn:
-                result = publish_run(conn, args.run_id, actor=args.actor)
+                result = publish_run(
+                    conn, args.run_id, actor=args.actor, change_event_id=args.change_event_id
+                )
                 conn.commit()
         except Exception as exc:
             print(f"publish-run failed: {type(exc).__name__}", file=sys.stderr)
@@ -228,6 +234,18 @@ def main(argv: list[str] | None = None) -> int:
             print(f"reject-event failed: {type(exc).__name__}", file=sys.stderr)
             return 1
         print("rejected")
+        return 0
+    if args.cmd == "publish-event":
+        from privacyradar.publication import publish_event
+
+        try:
+            with connect() as conn:
+                publish_event(conn, args.event_id, actor=args.actor)
+                conn.commit()
+        except Exception as exc:
+            print(f"publish-event failed: {type(exc).__name__}", file=sys.stderr)
+            return 1
+        print("published")
         return 0
     if args.cmd == "rollback-revision":
         from privacyradar.publication import rollback_revision

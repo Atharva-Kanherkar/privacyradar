@@ -188,7 +188,7 @@ def publish_run(
         select c.id, c.claim_key, c.category, c.attribute, c.polarity,
                e.quote, e.start_offset, e.end_offset, e.snapshot_id
         from candidate_claims c
-        join evidence_spans e on e.claim_id = c.id
+        left join evidence_spans e on e.claim_id = c.id
         where c.run_id = %s and c.validation_state = 'valid'
         """,
         (run_id,),
@@ -196,6 +196,8 @@ def publish_run(
     if not claims:
         raise PublicationError("no_valid_claims")
     for claim in claims:
+        if not claim["quote"]:
+            raise PublicationError("empty_quote")
         code = validate_claim_for_publication(conn, str(claim["id"]))
         if code:
             _audit(
@@ -318,6 +320,40 @@ def reject_event(conn: Any, event_id: str, *, actor: str, reason: str) -> None:
         target_type="change_event",
         target_id=event_id,
         reason=reason,
+    )
+
+
+def publish_event(conn: Any, event_id: str, *, actor: str) -> None:
+    actor = _actor(actor)
+    if not _switch_enabled(conn, "publication"):
+        raise PublicationError("publication_disabled")
+    row = conn.execute(
+        """
+        select e.id, e.quotes, e.publication_state, s.markdown
+        from change_events e
+        join snapshots s on s.id = e.to_snapshot
+        where e.id = %s
+        """,
+        (event_id,),
+    ).fetchone()
+    if row is None:
+        raise PublicationError("missing_event")
+    markdown = str(row["markdown"] or "")
+    quotes = row["quotes"] or []
+    if isinstance(quotes, str):
+        quotes = []
+    for item in quotes:
+        text = item.get("text") if isinstance(item, dict) else ""
+        if not text or quote_presence(str(text), markdown) == "missing":
+            raise PublicationError("quote_missing")
+    _set_event_state(conn, event_id, "published", published=True)
+    _audit(
+        conn,
+        actor=actor,
+        action="publish",
+        target_type="change_event",
+        target_id=event_id,
+        reason="publish_event",
     )
 
 
