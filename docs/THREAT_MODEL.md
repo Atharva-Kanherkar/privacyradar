@@ -34,3 +34,21 @@ This is the consumer-auth slice only. Publication, fetch, and billing threats st
 | Fixture inbox in production | Inbox writes and `/api/test/magic-inbox` require `AUTH_DELIVERY=fixture` |
 
 Passkeys are not a merge-required control in this issue. Magic link is the required path.
+
+## Closeout (issue #17)
+
+This section records residual product risks. It does **not** certify the system as threat-free or launch-ready.
+
+| Area | Residual risk | Current control |
+|---|---|---|
+| Fetch | SSRF via catalog or future operator URLs | Catalog URLs classified; nominations are not fetched |
+| Publication | Model-invented quotes | Quote-anchor validator; unpublished candidates never public |
+| Notifications | Duplicate or live send in CI | Unique outbox; `NOTIFY_PROVIDER=fake`; HMAC unsubscribe |
+| Compare | Unknown cells read as favorable | Copy: not found in evidence; no overall score |
+| Assistant | Prompt injection / uncited answers | Switch off; no citation ⇒ refuse; fake provider in CI |
+| Catalog | Vanity count of broken URLs | `c1` disabled; health gate=stop |
+| Billing | Accidental paid checkout | #16 not implemented; keep checkout disabled |
+| Pilot | Fake study participants | #3 stays open |
+
+Owner actions still required: production restore drill, required-check additions, #3, #16 approval, assistant eval on live routing.
+
