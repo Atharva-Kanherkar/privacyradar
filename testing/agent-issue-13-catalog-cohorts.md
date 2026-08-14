@@ -28,12 +28,13 @@ Catalog expansion is **demand-ranked and quality-gated**. Size is not success. T
 
 ## Schema (migration `0009`)
 
-Additive. Ledger **9**. Required public tables **37**.
+Additive. Ledger **9**. Required public tables **38**.
 
 - `catalog_cohorts(key text pk, enabled boolean not null, target_n int not null, notes text, updated_at)`
   - seed `seed` enabled, target 10; `c1` disabled, target 25
 - `company_requests(id uuid pk, name text, website text not null, category text, status text not null, duplicate_of uuid, created_at)`
   - `status in ('requested', 'duplicate', 'accepted', 'declined')`
+- `catalog_health_snapshots(id uuid pk, fetch_success_pct numeric, evidence_valid_pct numeric, created_at)`
 - `companies.cohort text not null default 'seed'`
 - `companies.owner text not null default 'unassigned'`
 - `product_switches` unchanged; cohort enablement is `catalog_cohorts.enabled`
@@ -58,7 +59,7 @@ Additive. Ledger **9**. Required public tables **37**.
 
 ## Integration
 
-- `test_migrate_fresh_includes_0009` (ledger 9)
+- `test_migrate_fresh_includes_0009` (ledger 9, 38 required tables)
 - `test_catalog_health_gate_is_stop_without_two_cycles`
 
 ## E2E
