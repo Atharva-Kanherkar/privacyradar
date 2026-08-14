@@ -234,4 +234,15 @@ def seed_public_fixtures(conn: psycopg.Connection[dict[str, Any]]) -> int:
     persist_source(conn, source)
     persist_observation(conn, observation)
     persist_claim(conn, claim)
+    conn.execute(
+        """
+        insert into change_events (
+          company_id, source_id, from_snapshot, to_snapshot,
+          materiality, headline, summary, publication_state
+        )
+        values (%s, %s, %s, %s, 'material', 'UNPUBLISHED_FIXTURE_HEADLINE',
+                'Held for review.', 'review_pending')
+        """,
+        (str(company.id), str(source.id), str(observation.id), str(observation.id)),
+    )
     return 1

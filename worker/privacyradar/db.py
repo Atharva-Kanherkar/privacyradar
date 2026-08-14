@@ -185,9 +185,9 @@ def insert_change_event(
             insert into change_events (
               company_id, source_id, from_snapshot, to_snapshot,
               materiality, headline, summary,
-              data_types_added, data_types_removed, quotes
+              data_types_added, data_types_removed, quotes, publication_state
             )
-            values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 company_id,
@@ -200,6 +200,13 @@ def insert_change_event(
                 data_types_added,
                 data_types_removed,
                 Json(quotes),
+                (
+                    "rejected"
+                    if materiality == "cosmetic"
+                    else "review_pending"
+                    if materiality in {"material", "unknown"}
+                    else "detected"
+                ),
             ),
         )
     conn.commit()

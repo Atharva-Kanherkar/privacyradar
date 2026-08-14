@@ -27,10 +27,15 @@ REQUIRED_TABLES = {
     "extraction_runs",
     "candidate_claims",
     "evidence_spans",
+    "publication_revisions",
+    "published_claims",
+    "review_actions",
+    "corrections",
+    "product_switches",
 }
 
 INITIAL_CHECKSUM = "5957a7874aaec1741621bfae3fff13f08fc3ca0c9222bb4592e56eac61cb3c8e"
-HEAD_VERSIONS = ["0001", "0002", "0003", "0004"]
+HEAD_VERSIONS = ["0001", "0002", "0003", "0004", "0005"]
 
 
 def _tables(url: str) -> set[str]:
@@ -59,11 +64,15 @@ def test_migrate_fresh_database_to_head(empty_database_url: str) -> None:
     assert _tables(empty_database_url) >= REQUIRED_TABLES
     ledger = _ledger(empty_database_url)
     assert [row[0] for row in ledger] == HEAD_VERSIONS
-    assert len(ledger) == 4
+    assert len(ledger) == 5
     assert ledger[0][1] == INITIAL_CHECKSUM
 
 
 def test_migrate_fresh_includes_0004(empty_database_url: str) -> None:
+    test_migrate_fresh_database_to_head(empty_database_url)
+
+
+def test_migrate_fresh_includes_0005(empty_database_url: str) -> None:
     test_migrate_fresh_database_to_head(empty_database_url)
 
 
@@ -365,7 +374,7 @@ def test_migrate_0002_database_upgrades_to_0003(
         before_observations = observation_count[0]
 
     second = migrate(empty_database_url)
-    assert second == ["0003", "0004"]
+    assert second == ["0003", "0004", "0005"]
     with psycopg.connect(empty_database_url, row_factory=dict_row) as conn:
         source = conn.execute(
             """

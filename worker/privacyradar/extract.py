@@ -111,6 +111,39 @@ def quote_presence(quote: str, document: str) -> str:
     return "missing"
 
 
+def resolve_quote_span(quote: str, document: str) -> tuple[str, int, int] | None:
+    """Return the verbatim snapshot slice and offsets for an exact or normalized quote."""
+    if not quote or not document:
+        return None
+    exact = document.find(quote)
+    if exact >= 0:
+        return document[exact : exact + len(quote)], exact, exact + len(quote)
+    target = " ".join(quote.split())
+    if not target:
+        return None
+    compact: list[str] = []
+    orig_index: list[int] = []
+    prev_space = True
+    for i, ch in enumerate(document):
+        if ch.isspace():
+            if not prev_space:
+                compact.append(" ")
+                orig_index.append(i)
+                prev_space = True
+        else:
+            compact.append(ch)
+            orig_index.append(i)
+            prev_space = False
+    compact_s = "".join(compact).rstrip()
+    orig_index = orig_index[: len(compact_s)]
+    pos = compact_s.find(target)
+    if pos < 0:
+        return None
+    start = orig_index[pos]
+    end = orig_index[pos + len(target) - 1] + 1
+    return document[start:end], start, end
+
+
 def _with_key(claim: CandidateClaim, taxonomy_version: str) -> CandidateClaim:
     key = claim_key(
         taxonomy_version=taxonomy_version,
