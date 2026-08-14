@@ -41,6 +41,14 @@ export async function GET() {
     order by created_at desc
   `;
 
+  const watches = await sql<{ slug: string; status: string }[]>`
+    select c.slug, w.status
+    from watches w
+    join companies c on c.id = w.company_id
+    where w.user_id = ${session.user.id}
+    order by c.slug
+  `;
+
   await sql`
     insert into consent_events (user_id, action)
     values (${session.user.id}, 'export')
@@ -54,6 +62,7 @@ export async function GET() {
       },
       profile: profiles[0] ?? { region: "unspecified" },
       consent_events: consents,
+      watches,
       sessions: sessions.map((row) => ({
         id: row.id,
         created_at: row.created_at,

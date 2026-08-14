@@ -230,10 +230,21 @@ def persist_user(
 
 
 def persist_follow(
-    _conn: psycopg.Connection[dict[str, Any]], follow: FollowFixture
+    conn: psycopg.Connection[dict[str, Any]], follow: FollowFixture
 ) -> None:
-    raise FixturePersistenceUnsupported(
-        f"watches table is owned by issue #11; cannot persist follow {follow.id}"
+    conn.execute(
+        """
+        insert into watches (id, user_id, company_id, status, source, created_at, updated_at)
+        values (%s, %s, %s, %s, 'company_page', %s, %s)
+        """,
+        (
+            str(follow.id),
+            str(follow.user_id),
+            str(follow.company_id),
+            follow.status,
+            follow.created_at,
+            follow.created_at,
+        ),
     )
 
 

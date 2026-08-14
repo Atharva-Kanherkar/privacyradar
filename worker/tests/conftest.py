@@ -122,6 +122,8 @@ def db_url(migrated_database_url: str) -> str:
         conn.execute(
             """
             truncate
+              product_events,
+              watches,
               auth_magic_inbox,
               consent_events,
               consumer_profiles,

@@ -45,3 +45,4 @@ Structured facts: “discloses”, “we found”, “we have not found evidence
 Deferred: `WatchButton`, `CompanyPicker`, `ComparisonMatrix`, `AssistantPanel` (#11+).
 
 Added in #10: `AuthNav` (Sign in / Account from session cookie).
+Added in #11: `WatchButton`.
