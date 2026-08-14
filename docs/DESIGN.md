@@ -50,3 +50,4 @@ Added in #12: `/radar/settings` and signed `/unsubscribe` for transactional aler
 Added in #13: `/companies/request` — nominations are requested, not monitored.
 Added in #14: `/compare` — published claims only, no overall score.
 Added in #15: company-page cited assistant, off by default.
+Added in #17: operations runbook and launch status (not launch-ready).
