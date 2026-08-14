@@ -158,13 +158,20 @@ def test_persist_user_round_trip(db_url: str) -> None:
             """,
             (str(user.id),),
         ).fetchone()
-        with pytest.raises(FixturePersistenceUnsupported, match="issue #11"):
-            persist_follow(conn, make_follow(user, company))
+        persist_company(conn, company)
+        persist_follow(conn, make_follow(user, company))
+        conn.commit()
+        watch = conn.execute(
+            "select status from watches where user_id = %s",
+            (str(user.id),),
+        ).fetchone()
         with pytest.raises(FixturePersistenceUnsupported, match="issue #12"):
             persist_notification(conn, make_notification(user))
     assert row is not None
     assert row["email"] == user.email
     assert row["region"] == "US"
+    assert watch is not None
+    assert watch["status"] == "active"
 
 
 def test_future_tables_are_in_memory_only(db_url: str) -> None:

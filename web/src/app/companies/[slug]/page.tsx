@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ChangeCard } from "@/components/ChangeCard";
 import { DisclosureRow } from "@/components/DisclosureRow";
 import { FreshnessLabel } from "@/components/FreshnessLabel";
 import { StatePanel } from "@/components/StatePanel";
+import { WatchButton } from "@/components/WatchButton";
 import { loadCompany } from "@/lib/db";
+import { getSessionFromCookies } from "@/lib/session";
+import { followCompany, isWatching } from "@/lib/watches";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +31,13 @@ export async function generateMetadata({
 
 export default async function CompanyPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ watch?: string }>;
 }) {
   const { slug } = await params;
+  const query = await searchParams;
   const result = await loadCompany(slug);
   if (!result.ok) {
     return (
@@ -43,6 +49,15 @@ export default async function CompanyPage({
     );
   }
   if (!result.data) notFound();
+
+  const session = await getSessionFromCookies();
+  if (query.watch === "1" && session?.user) {
+    await followCompany(session.user.id, result.data.company.id, "resume");
+    redirect(`/companies/${slug}`);
+  }
+  const watching = session?.user
+    ? await isWatching(session.user.id, result.data.company.id)
+    : false;
 
   const { company, events, claims } = result.data;
   const glance = ["sensitive", "sharing", "purpose", "retention", "control"];
@@ -60,6 +75,13 @@ export default async function CompanyPage({
         {company.category}
       </p>
       <h1 className="mt-2 font-serif text-4xl tracking-tight">{company.name}</h1>
+      <div className="mt-4">
+        <WatchButton
+          slug={company.slug}
+          signedIn={Boolean(session?.user)}
+          watching={watching}
+        />
+      </div>
       <p className="mt-3 font-sans text-sm text-[var(--muted)]">
         {company.privacy_url ? (
           <a href={company.privacy_url} className="underline" rel="noreferrer">

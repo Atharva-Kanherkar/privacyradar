@@ -1,4 +1,4 @@
-"""Consumer account deletion against the 0006 SQL function."""
+"""Consumer account deletion against the SQL function."""
 
 from __future__ import annotations
 
