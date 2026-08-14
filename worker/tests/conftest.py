@@ -33,9 +33,7 @@ def _can_connect(url: str) -> bool:
 
 @pytest.fixture(scope="session")
 def postgres_admin_url() -> str:
-    configured = os.environ.get("TEST_ADMIN_DATABASE_URL") or os.environ.get(
-        "TEST_DATABASE_URL"
-    )
+    configured = os.environ.get("TEST_ADMIN_DATABASE_URL") or os.environ.get("TEST_DATABASE_URL")
     if configured:
         parsed = urlparse(configured)
         dbname = (parsed.path or "/").lstrip("/") or "postgres"
@@ -122,6 +120,12 @@ def db_url(migrated_database_url: str) -> str:
         conn.execute(
             """
             truncate
+              notification_fixture_inbox,
+              notification_deliveries,
+              notification_outbox,
+              notification_fanout_jobs,
+              notification_preferences,
+              notification_suppressions,
               product_events,
               watches,
               auth_magic_inbox,

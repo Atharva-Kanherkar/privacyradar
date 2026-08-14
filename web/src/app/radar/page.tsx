@@ -36,6 +36,12 @@ export default async function RadarPage() {
           <span className="mx-2" aria-hidden="true">
             ·
           </span>
+          <Link href="/radar/settings" className="underline">
+            Alert settings
+          </Link>
+          <span className="mx-2" aria-hidden="true">
+            ·
+          </span>
           <Link href="/companies" className="underline">
             Add companies
           </Link>

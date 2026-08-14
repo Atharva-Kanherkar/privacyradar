@@ -93,6 +93,18 @@ def main(argv: list[str] | None = None) -> int:
     corr_r.add_argument("--note", required=True)
     sub.add_parser("publish-stats", help="Print publication queue counts without quotes")
     sub.add_parser("eval-materiality", help="Run the synthetic materiality corpus (no live model)")
+    sub.add_parser("notify-fanout", help="Page watchers into unique notification outbox rows")
+    sub.add_parser(
+        "notify-deliver",
+        help="Claim due outbox rows and send via the configured adapter",
+    )
+    sub.add_parser("notify-stats", help="Print notification counts without emails or tokens")
+    fixture_pub = sub.add_parser(
+        "fixture-publish-change",
+        help="Publish a material fixture change (AUTH_DELIVERY=fixture only)",
+    )
+    fixture_pub.add_argument("--slug", required=True)
+    fixture_pub.add_argument("--headline", required=True)
 
     args = parser.parse_args(argv)
     if args.cmd == "migrate":
@@ -241,9 +253,7 @@ def main(argv: list[str] | None = None) -> int:
 
         try:
             _publication_txn(
-                lambda conn: reject_event(
-                    conn, args.event_id, actor=args.actor, reason=args.reason
-                )
+                lambda conn: reject_event(conn, args.event_id, actor=args.actor, reason=args.reason)
             )
         except Exception as exc:
             print(f"reject-event failed: {type(exc).__name__}", file=sys.stderr)
@@ -333,6 +343,50 @@ def main(argv: list[str] | None = None) -> int:
         print(materiality_eval.format_report(mat_report))
         if not materiality_eval.gates_pass(mat_report):
             return 1
+        return 0
+    if args.cmd == "notify-fanout":
+        from privacyradar.notify import NotifyError, run_fanout
+
+        try:
+            with connect() as conn:
+                n = run_fanout(conn)
+                conn.commit()
+        except NotifyError as exc:
+            print(f"notify-fanout failed: {exc}", file=sys.stderr)
+            return 1
+        print(f"jobs={n}")
+        return 0
+    if args.cmd == "notify-deliver":
+        from privacyradar.notify import NotifyError, run_deliver
+
+        try:
+            with connect() as conn:
+                n = run_deliver(conn)
+                conn.commit()
+        except NotifyError as exc:
+            print(f"notify-deliver failed: {exc}", file=sys.stderr)
+            return 1
+        print(f"sent={n}")
+        return 0
+    if args.cmd == "notify-stats":
+        from privacyradar.notify import notify_stats
+
+        with connect() as conn:
+            stats = notify_stats(conn)
+        for key, value in stats.items():
+            print(f"{key}={value}")
+        return 0
+    if args.cmd == "fixture-publish-change":
+        from privacyradar.notify import NotifyError, fixture_publish_change
+
+        try:
+            with connect() as conn:
+                event_id = fixture_publish_change(conn, slug=args.slug, headline=args.headline)
+                conn.commit()
+        except Exception as exc:
+            print(f"fixture-publish-change failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+            return 1
+        print(f"event_id={event_id}")
         return 0
     return 1
 
