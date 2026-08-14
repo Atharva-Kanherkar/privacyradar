@@ -484,3 +484,235 @@ def test_publish_event_promotes_review_pending(db_url: str) -> None:
         assert row is not None
         assert row["publication_state"] == "published"
         assert row["published_at"] is not None
+
+
+def test_publish_event_empty_quotes_refused(db_url: str) -> None:
+    from psycopg.types.json import Json
+
+    company_id, observation_id, _run_id = _seed_run(db_url, slug="empty-quotes-co")
+    with _connect(db_url) as conn:
+        source = conn.execute(
+            "select id from policy_sources where company_id = %s", (company_id,)
+        ).fetchone()
+        snap = conn.execute(
+            "select snapshot_id from observations where id = %s", (observation_id,)
+        ).fetchone()
+        assert source is not None and snap is not None
+        event = conn.execute(
+            """
+            insert into change_events (
+              company_id, source_id, from_snapshot, to_snapshot,
+              materiality, headline, summary, quotes, publication_state
+            )
+            values (%s, %s, %s, %s, 'material', 'No cites', 's', %s, 'review_pending')
+            returning id
+            """,
+            (
+                company_id,
+                str(source["id"]),
+                str(snap["snapshot_id"]),
+                str(snap["snapshot_id"]),
+                Json([]),
+            ),
+        ).fetchone()
+        assert event is not None
+        with pytest.raises(PublicationError, match="quote_missing"):
+            publish_event(conn, str(event["id"]), actor="cli:local")
+        row = conn.execute(
+            "select publication_state from change_events where id = %s",
+            (str(event["id"]),),
+        ).fetchone()
+        assert row is not None and row["publication_state"] == "review_pending"
+
+
+def test_multi_span_claim_publishes_once(db_url: str) -> None:
+    _, _, run_id = _seed_run(db_url, slug="multispans-co")
+    with _connect(db_url) as conn:
+        claim = conn.execute(
+            """
+            select c.id, r.snapshot_id
+            from candidate_claims c
+            join extraction_runs r on r.id = c.run_id
+            where r.id = %s
+            """,
+            (run_id,),
+        ).fetchone()
+        assert claim is not None
+        conn.execute(
+            """
+            insert into evidence_spans (
+              id, claim_id, snapshot_id, quote, validation_result
+            )
+            values (%s, %s, %s, %s, 'exact')
+            """,
+            (str(uuid4()), str(claim["id"]), str(claim["snapshot_id"]), QUOTE),
+        )
+        result = publish_run(conn, run_id, actor="cli:local")
+        conn.commit()
+        n = conn.execute(
+            "select count(*) as n from published_claims where revision_id = %s",
+            (result.revision_id,),
+        ).fetchone()
+        assert result.n_claims == 1
+        assert n is not None and n["n"] == 1
+
+
+def test_rollback_restores_prior_change_event(db_url: str) -> None:
+    from psycopg.types.json import Json
+
+    company_id, observation_id, run_id = _seed_run(db_url, slug="roll-event-co")
+    with _connect(db_url) as conn:
+        source = conn.execute(
+            "select id from policy_sources where company_id = %s", (company_id,)
+        ).fetchone()
+        snap = conn.execute(
+            "select snapshot_id from observations where id = %s", (observation_id,)
+        ).fetchone()
+        assert source is not None and snap is not None
+
+        def _event(headline: str) -> str:
+            row = conn.execute(
+                """
+                insert into change_events (
+                  company_id, source_id, from_snapshot, to_snapshot,
+                  materiality, headline, summary, quotes, publication_state
+                )
+                values (%s, %s, %s, %s, 'material', %s, 's', %s, 'review_pending')
+                returning id
+                """,
+                (
+                    company_id,
+                    str(source["id"]),
+                    str(snap["snapshot_id"]),
+                    str(snap["snapshot_id"]),
+                    headline,
+                    Json([{"text": QUOTE, "section": "Privacy"}]),
+                ),
+            ).fetchone()
+            assert row is not None
+            return str(row["id"])
+
+        event_a = _event("First")
+        event_b = _event("Second")
+        first = publish_run(conn, run_id, actor="cli:local", change_event_id=event_a)
+        second = publish_run(conn, run_id, actor="cli:local", change_event_id=event_b)
+        rollback_revision(conn, second.revision_id, actor="cli:local", reason="bad_rev")
+        conn.commit()
+        current = conn.execute(
+            """
+            select change_event_id from publication_revisions
+            where state = 'published' order by revision_n desc limit 1
+            """
+        ).fetchone()
+        assert current is not None
+        assert str(current["change_event_id"]) == event_a
+        assert first.revision_id != second.revision_id
+
+
+def test_normalized_quote_can_publish(db_url: str) -> None:
+    _, _, run_id = _seed_run(db_url, slug="norm-quote-co")
+    with _connect(db_url) as conn:
+        snap = conn.execute(
+            "select snapshot_id from extraction_runs where id = %s", (run_id,)
+        ).fetchone()
+        assert snap is not None
+        claim_id = str(uuid4())
+        conn.execute(
+            """
+            insert into candidate_claims (
+              id, run_id, claim_key, category, attribute, polarity,
+              confidence, validation_state
+            )
+            values (%s, %s, 'normkey', 'data_collected', 'name', 'disclosed', 1, 'valid')
+            """,
+            (claim_id, run_id),
+        )
+        conn.execute(
+            """
+            insert into evidence_spans (
+              id, claim_id, snapshot_id, quote, validation_result
+            )
+            values (
+              %s, %s, %s,
+              'We collect   your email address to create an account.',
+              'normalized'
+            )
+            """,
+            (str(uuid4()), claim_id, str(snap["snapshot_id"])),
+        )
+        result = publish_run(conn, run_id, actor="cli:local")
+        conn.commit()
+        row = conn.execute(
+            """
+            select quote, start_offset, end_offset from published_claims
+            where revision_id = %s and claim_key = 'normkey'
+            """,
+            (result.revision_id,),
+        ).fetchone()
+        assert row is not None
+        assert QUOTE in str(row["quote"]) or str(row["quote"]).find("email") >= 0
+        assert int(row["start_offset"]) >= 0
+        assert int(row["end_offset"]) > int(row["start_offset"])
+        assert POLICY[int(row["start_offset"]) : int(row["end_offset"])] == str(row["quote"])
+
+
+def test_failed_publish_persists_reject_audit(db_url: str) -> None:
+    _, _, run_id = _seed_run(db_url, slug="persist-audit-co")
+    with _connect(db_url) as conn:
+        snap = conn.execute(
+            "select snapshot_id from extraction_runs where id = %s", (run_id,)
+        ).fetchone()
+        assert snap is not None
+        bad_id = str(uuid4())
+        conn.execute(
+            """
+            insert into candidate_claims (
+              id, run_id, claim_key, category, attribute, polarity,
+              confidence, validation_state
+            )
+            values (%s, %s, 'persistkey', 'data_collected', 'email', 'disclosed', 1, 'valid')
+            """,
+            (bad_id, run_id),
+        )
+        conn.execute(
+            """
+            insert into evidence_spans (
+              id, claim_id, snapshot_id, quote, validation_result
+            )
+            values (%s, %s, %s, 'absent quote', 'missing')
+            """,
+            (str(uuid4()), bad_id, str(snap["snapshot_id"])),
+        )
+        with pytest.raises(PublicationError, match="quote_missing"):
+            publish_run(conn, run_id, actor="cli:local")
+        conn.commit()
+    with _connect(db_url) as conn:
+        stats = publish_stats(conn)
+        assert stats["citation_failures"] >= 1
+        assert stats["published_revisions"] == 0
+
+
+def test_publication_txn_commits_on_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    import contextlib
+
+    from privacyradar.cli import _publication_txn
+
+    class FakeConn:
+        def __init__(self) -> None:
+            self.commits = 0
+
+        def commit(self) -> None:
+            self.commits += 1
+
+    fake = FakeConn()
+    monkeypatch.setattr(
+        "privacyradar.cli.connect",
+        lambda: contextlib.nullcontext(fake),
+    )
+    with pytest.raises(PublicationError, match="quote_missing"):
+        _publication_txn(_raise_quote_missing)
+    assert fake.commits == 1
+
+
+def _raise_quote_missing(_conn: object) -> None:
+    raise PublicationError("quote_missing")

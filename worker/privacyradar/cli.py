@@ -2,14 +2,27 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Callable
 
 from privacyradar.catalog import seed_catalog
 from privacyradar.db import connect
 from privacyradar.migrate import migrate
 from privacyradar.pipeline import crawl_all, extract_missing
+from privacyradar.publication import PublicationError
 from privacyradar.reconcile import format_report, reconcile_observations
 from privacyradar.settings import settings
 from privacyradar.testing.persist import seed_public_fixtures
+
+
+def _publication_txn[T](work: Callable[[object], T]) -> T:
+    with connect() as conn:
+        try:
+            result = work(conn)
+            conn.commit()
+            return result
+        except PublicationError:
+            conn.commit()
+            raise
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -210,11 +223,11 @@ def main(argv: list[str] | None = None) -> int:
         from privacyradar.publication import publish_run
 
         try:
-            with connect() as conn:
-                result = publish_run(
+            result = _publication_txn(
+                lambda conn: publish_run(
                     conn, args.run_id, actor=args.actor, change_event_id=args.change_event_id
                 )
-                conn.commit()
+            )
         except Exception as exc:
             print(f"publish-run failed: {type(exc).__name__}", file=sys.stderr)
             return 1
@@ -227,9 +240,11 @@ def main(argv: list[str] | None = None) -> int:
         from privacyradar.publication import reject_event
 
         try:
-            with connect() as conn:
-                reject_event(conn, args.event_id, actor=args.actor, reason=args.reason)
-                conn.commit()
+            _publication_txn(
+                lambda conn: reject_event(
+                    conn, args.event_id, actor=args.actor, reason=args.reason
+                )
+            )
         except Exception as exc:
             print(f"reject-event failed: {type(exc).__name__}", file=sys.stderr)
             return 1
@@ -239,9 +254,7 @@ def main(argv: list[str] | None = None) -> int:
         from privacyradar.publication import publish_event
 
         try:
-            with connect() as conn:
-                publish_event(conn, args.event_id, actor=args.actor)
-                conn.commit()
+            _publication_txn(lambda conn: publish_event(conn, args.event_id, actor=args.actor))
         except Exception as exc:
             print(f"publish-event failed: {type(exc).__name__}", file=sys.stderr)
             return 1
@@ -251,11 +264,11 @@ def main(argv: list[str] | None = None) -> int:
         from privacyradar.publication import rollback_revision
 
         try:
-            with connect() as conn:
-                result = rollback_revision(
+            result = _publication_txn(
+                lambda conn: rollback_revision(
                     conn, args.revision_id, actor=args.actor, reason=args.reason
                 )
-                conn.commit()
+            )
         except Exception as exc:
             print(f"rollback-revision failed: {type(exc).__name__}", file=sys.stderr)
             return 1
@@ -265,15 +278,15 @@ def main(argv: list[str] | None = None) -> int:
         from privacyradar.publication import submit_correction
 
         try:
-            with connect() as conn:
-                correction_id = submit_correction(
+            correction_id = _publication_txn(
+                lambda conn: submit_correction(
                     conn,
                     company_id=args.company_id,
                     revision_id=args.revision_id,
                     note=args.note,
                     actor=args.actor,
                 )
-                conn.commit()
+            )
         except Exception as exc:
             print(f"correction-submit failed: {type(exc).__name__}", file=sys.stderr)
             return 1
@@ -283,15 +296,15 @@ def main(argv: list[str] | None = None) -> int:
         from privacyradar.publication import resolve_correction
 
         try:
-            with connect() as conn:
-                replacement = resolve_correction(
+            replacement = _publication_txn(
+                lambda conn: resolve_correction(
                     conn,
                     args.correction_id,
                     actor=args.actor,
                     decision=args.decision,
                     note=args.note,
                 )
-                conn.commit()
+            )
         except Exception as exc:
             print(f"correction-resolve failed: {type(exc).__name__}", file=sys.stderr)
             return 1

@@ -12,7 +12,9 @@ from privacyradar.extract import (
     chunk_document,
     delimit_untrusted,
     extract_document,
+    quote_presence,
     reconcile_claims,
+    resolve_quote_span,
     validate_claims,
 )
 from privacyradar.settings import settings
@@ -159,3 +161,15 @@ def test_empty_policy_records_uncertainty_not_does_not_collect() -> None:
     }
     assert valid == {("uncertainty", "unknown", "unspecified")}
     assert "data_collected" not in {claim.category for claim in found}
+
+
+def test_resolve_quote_span_maps_normalized_whitespace() -> None:
+    document = "# Privacy\nWe collect   your email address.\n"
+    quote = "We collect your email address."
+    assert quote_presence(quote, document) == "normalized"
+    resolved = resolve_quote_span(quote, document)
+    assert resolved is not None
+    verbatim, start, end = resolved
+    assert document[start:end] == verbatim
+    assert " ".join(verbatim.split()) == quote
+    assert resolve_quote_span("not in the document", document) is None

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any, cast
 from uuid import uuid4
 
-from privacyradar.extract import quote_presence
+from privacyradar.extract import resolve_quote_span
 from privacyradar.operator import OperatorError, validate_actor
 
 logger = logging.getLogger(__name__)
@@ -83,7 +83,7 @@ def _audit(
 def validate_claim_for_publication(conn: Any, candidate_claim_id: str) -> str | None:
     row = conn.execute(
         """
-        select
+        select distinct on (c.id)
           c.id,
           c.validation_state,
           c.category,
@@ -103,6 +103,7 @@ def validate_claim_for_publication(conn: Any, candidate_claim_id: str) -> str | 
         join snapshots s on s.id = r.snapshot_id
         left join evidence_spans e on e.claim_id = c.id
         where c.id = %s
+        order by c.id, (e.validation_result = 'exact') desc, e.start_offset nulls last
         """,
         (candidate_claim_id,),
     ).fetchone()
@@ -115,21 +116,22 @@ def validate_claim_for_publication(conn: Any, candidate_claim_id: str) -> str | 
     if row["validation_state"] != "valid":
         return "unsupported"
     quote = row["quote"]
-    markdown = row["markdown"] or ""
+    markdown = str(row["markdown"] or "")
     if not quote:
         return "empty_quote"
-    if quote_presence(str(quote), str(markdown)) == "missing":
+    resolved = resolve_quote_span(str(quote), markdown)
+    if resolved is None:
         return "quote_missing"
-    if str(row["span_snapshot_id"]) != str(row["run_snapshot_id"]):
+    _verbatim, start, end = resolved
+    if row["span_snapshot_id"] is not None and str(row["span_snapshot_id"]) != str(
+        row["run_snapshot_id"]
+    ):
         return "snapshot_mismatch"
     if str(row["observation_snapshot_id"]) != str(row["run_snapshot_id"]):
         return "observation_mismatch"
-    start = markdown.find(quote)
-    if start < 0:
-        start = " ".join(str(markdown).split()).find(" ".join(str(quote).split()))
     if row["start_offset"] is not None and int(row["start_offset"]) != start:
         return "offset_mismatch"
-    if row["end_offset"] is not None and int(row["end_offset"]) != start + len(quote):
+    if row["end_offset"] is not None and int(row["end_offset"]) != end:
         return "offset_mismatch"
     return None
 
@@ -185,11 +187,13 @@ def publish_run(
         raise PublicationError("invalid_snapshot")
     claims = conn.execute(
         """
-        select c.id, c.claim_key, c.category, c.attribute, c.polarity,
+        select distinct on (c.id)
+               c.id, c.claim_key, c.category, c.attribute, c.polarity,
                e.quote, e.start_offset, e.end_offset, e.snapshot_id
         from candidate_claims c
         left join evidence_spans e on e.claim_id = c.id
         where c.run_id = %s and c.validation_state = 'valid'
+        order by c.id, (e.validation_result = 'exact') desc, e.start_offset nulls last
         """,
         (run_id,),
     ).fetchall()
@@ -229,11 +233,13 @@ def publish_run(
             actor,
         ),
     )
+    markdown = str(run["markdown"])
     for claim in claims:
-        quote = str(claim["quote"])
-        markdown = str(run["markdown"])
-        start = markdown.find(quote)
-        end = start + len(quote)
+        resolved = resolve_quote_span(str(claim["quote"]), markdown)
+        if resolved is None:
+            raise PublicationError("quote_missing")
+        verbatim, start, end = resolved
+        snapshot_id = str(claim["snapshot_id"] or run["snapshot_id"])
         conn.execute(
             """
             insert into published_claims (
@@ -250,10 +256,10 @@ def publish_run(
                 claim["category"],
                 claim["attribute"],
                 claim["polarity"],
-                quote,
-                str(claim["snapshot_id"]),
-                start if start >= 0 else claim["start_offset"],
-                end if start >= 0 else claim["end_offset"],
+                verbatim,
+                snapshot_id,
+                start,
+                end,
             ),
         )
     if change_event_id:
@@ -342,9 +348,11 @@ def publish_event(conn: Any, event_id: str, *, actor: str) -> None:
     quotes = row["quotes"] or []
     if isinstance(quotes, str):
         quotes = []
+    if not quotes:
+        raise PublicationError("quote_missing")
     for item in quotes:
         text = item.get("text") if isinstance(item, dict) else ""
-        if not text or quote_presence(str(text), markdown) == "missing":
+        if not text or resolve_quote_span(str(text), markdown) is None:
             raise PublicationError("quote_missing")
     _set_event_state(conn, event_id, "published", published=True)
     _audit(
@@ -404,7 +412,7 @@ def rollback_revision(conn: Any, revision_id: str, *, actor: str, reason: str) -
     )
     prior = conn.execute(
         """
-        select id
+        select id, extraction_run_id, change_event_id
         from publication_revisions
         where company_id = %s and state = 'published' and id <> %s
         order by revision_n desc
@@ -412,22 +420,17 @@ def rollback_revision(conn: Any, revision_id: str, *, actor: str, reason: str) -
         """,
         (str(target["company_id"]), revision_id),
     ).fetchone()
-    restore_id = str(prior["id"]) if prior else revision_id
+    if prior:
+        restore_run = str(prior["extraction_run_id"])
+        restore_event = str(prior["change_event_id"]) if prior["change_event_id"] else None
+    else:
+        restore_run = str(target["extraction_run_id"])
+        restore_event = str(target["change_event_id"]) if target["change_event_id"] else None
     return publish_run(
         conn,
-        str(target["extraction_run_id"]),
+        restore_run,
         actor=actor,
-        change_event_id=str(target["change_event_id"]) if target["change_event_id"] else None,
-    ) if restore_id == revision_id else publish_run(
-        conn,
-        str(
-            conn.execute(
-                "select extraction_run_id from publication_revisions where id = %s",
-                (restore_id,),
-            ).fetchone()["extraction_run_id"]
-        ),
-        actor=actor,
-        change_event_id=str(target["change_event_id"]) if target["change_event_id"] else None,
+        change_event_id=restore_event,
     )
 
 
