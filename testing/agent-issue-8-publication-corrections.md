@@ -53,7 +53,7 @@ Rollback: set `publication` switch false; leave tables. Public pages keep last p
 Additive. `0001`–`0004` checksums unchanged.
 
 - `change_events.publication_state` text not null, check in (`detected`,`analyzing`,`review_pending`,`published`,`rejected`,`failed`,`corrected`). Existing rows backfill `published`; new inserts default `detected`. `published_at` becomes nullable; set only on publish.
-- `publication_revisions(id, company_id, observation_id, extraction_run_id, change_event_id, revision_n, state, actor, created_at)` state in (`published`,`superseded`,`rolled_back`). Unique `(company_id, revision_n)`.
+- `publication_revisions(id, company_id, observation_id, extraction_run_id, change_event_id, rolls_back_id, revision_n, state, actor, created_at)` state in (`published`,`rolled_back`). Unique `(company_id, revision_n)`. `rolls_back_id` is set only on `rolled_back` rows.
 - `published_claims(id, revision_id, candidate_claim_id, claim_key, category, attribute, polarity, quote, snapshot_id, start_offset, end_offset)` unique `(revision_id, claim_key)`.
 - `review_actions(id, actor, action, target_type, target_id, reason, created_at)` action in (`approve`,`reject`,`publish`,`rollback`,`correct`,`acknowledge`,`decline`).
 - `corrections(id, company_id, target_revision_id, replacement_revision_id, reporter_kind, state, public_note, actor, created_at, resolved_at)` state in (`submitted`,`acknowledged`,`reviewing`,`corrected`,`declined`).
@@ -78,12 +78,12 @@ Offsets: if stored offsets are null, compute from `markdown.find(quote)`; if the
 1. Switch `publication` must be on.
 2. Load run + observation + snapshot. Invalid/missing snapshot → refuse, no revision.
 3. Validate every `validation_state=valid` claim. Any failure → no revision, `review_actions` with reject reason, event stays `review_pending` or `failed`.
-4. In one transaction: take advisory lock `pg_advisory_xact_lock(8462017)`, insert `publication_revisions` with `state='published'` and next `revision_n` for the company, insert `published_claims` for each validated claim. Current publication for a company is `max(revision_n) where state='published'`. Historical revision rows are never updated.
+4. In one transaction: take advisory lock `pg_advisory_xact_lock(8462017)`, insert `publication_revisions` with `state='published'` and next `revision_n` for the company, insert `published_claims` for each validated claim. Current publication for a company is the latest `published` revision that is not the target of a later `rolls_back_id`. Historical revision rows are never updated.
 5. If a `change_event_id` is linked, UPDATE that event to `publication_state='published'` and `published_at=now()`. `change_events` is **not** append-only (existing table, no new trigger). Revisions are the immutable evidence record.
 6. Cosmetic materiality → `publication_state=rejected`, not listed publicly, no published claims.
 7. Uncertain/material → `review_pending` until an operator publishes.
 
-Rollback inserts a `publication_revisions` row with `state='rolled_back'` targeting the abandoned revision, then inserts a new `state='published'` row cloning the restored prior claims at `revision_n+1`. Review actions record `rollback`. If the abandoned revision is linked to a different change event than the restored revision, that abandoned event is set to `publication_state='corrected'` so it is history, not a live feed item.
+Rollback inserts a `publication_revisions` row with `state='rolled_back'` and `rolls_back_id` pointing at the abandoned revision. If another current published revision remains, rollback then inserts a new `state='published'` row cloning that prior revision's claims. If the abandoned revision was the only current publication, rollback does not clone; the company has no current published claims. In both cases, if the abandoned revision is linked to a change event that is not restored as current, that event is set to `publication_state='corrected'` so it is history, not a live feed item. Review actions record `rollback`.
 
 ### Corrections
 
