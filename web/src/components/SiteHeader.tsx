@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Radar } from "lucide-react";
 import { AuthNav } from "./AuthNav";
+import { ThemeToggle } from "./ThemeToggle";
 
 const LINKS = [
   { href: "/companies", label: "Companies" },
@@ -17,7 +18,7 @@ export function SiteHeader() {
       </a>
       <div className="mx-auto flex max-w-6xl min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-3">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent)] text-white">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--accent-contrast)]">
             <Radar size={20} aria-hidden="true" />
           </span>
           <span className="text-lg font-semibold tracking-tight">
@@ -34,6 +35,7 @@ export function SiteHeader() {
               {link.label}
             </Link>
           ))}
+          <ThemeToggle />
           <AuthNav />
         </nav>
         <details className="sm:hidden">
@@ -50,7 +52,10 @@ export function SiteHeader() {
                 {link.label}
               </Link>
             ))}
-            <AuthNav />
+            <div className="flex items-center gap-1">
+              <ThemeToggle />
+              <AuthNav />
+            </div>
           </nav>
         </details>
       </div>

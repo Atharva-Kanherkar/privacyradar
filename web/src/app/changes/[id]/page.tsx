@@ -67,7 +67,7 @@ export default async function ChangePage({
         <ul className="mt-4 space-y-4">
           {quotes.map((quote) => (
             <li key={quote.text}>
-              <figure className="border-l-2 border-[var(--important)] pl-3">
+              <figure className="border-l border-[var(--important)] pl-3">
                 <blockquote className="text-sm italic text-[var(--muted)]">
                   “{quote.text}”
                 </blockquote>

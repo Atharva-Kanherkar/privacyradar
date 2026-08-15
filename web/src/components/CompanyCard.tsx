@@ -35,7 +35,7 @@ export function CompanyCard({
   return (
     <Link
       href={`/companies/${company.slug}`}
-      className="group flex flex-col gap-3 rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--accent)] hover:shadow-md"
+      className="group flex flex-col gap-3 rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-5 transition-all hover:-translate-y-0.5 hover:border-[var(--accent)]"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3">

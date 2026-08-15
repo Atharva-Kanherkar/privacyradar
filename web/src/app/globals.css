@@ -1,17 +1,20 @@
 @import "tailwindcss";
 
+/* Light theme (default). Legacy token names are kept so older pages inherit
+   the current look without edits. */
 :root {
-  /* Modern light palette. Legacy token names are kept so older pages
-     inherit the new look without edits. */
+  color-scheme: light;
   --paper: #f8fafc;
   --ink: #0f172a;
+  --ink-contrast: #ffffff;
   --muted: #475569;
   --rule: #e2e8f0;
   --surface: #ffffff;
   --card: #ffffff;
   --panel: #f1f5f9;
-  --focus: #4f46e5;
+  --focus: #4338ca;
   --accent: #4338ca;
+  --accent-contrast: #ffffff;
   --accent-soft: #eef2ff;
   --important: #be123c;
   --material: #be123c;
@@ -22,6 +25,60 @@
   --warning: #92400e;
   --warning-soft: #fffbeb;
   --success: #166534;
+}
+
+/* Matte black dark theme. Near-black layered grays, hairline rules, no gloss;
+   accents lightened one step so small text keeps AA contrast. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #0a0a0a;
+    --ink: #f2f2f2;
+    --ink-contrast: #0a0a0a;
+    --muted: #a1a1aa;
+    --rule: #262626;
+    --surface: #121212;
+    --card: #121212;
+    --panel: #1a1a1a;
+    --focus: #a5b4fc;
+    --accent: #a5b4fc;
+    --accent-contrast: #0a0a0a;
+    --accent-soft: rgba(165, 180, 252, 0.12);
+    --important: #fda4af;
+    --material: #fda4af;
+    --danger: #fca5a5;
+    --danger-soft: rgba(252, 165, 165, 0.1);
+    --good: #86efac;
+    --good-soft: rgba(134, 239, 172, 0.1);
+    --warning: #fcd34d;
+    --warning-soft: rgba(252, 211, 77, 0.1);
+    --success: #86efac;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #0a0a0a;
+  --ink: #f2f2f2;
+  --ink-contrast: #0a0a0a;
+  --muted: #a1a1aa;
+  --rule: #262626;
+  --surface: #121212;
+  --card: #121212;
+  --panel: #1a1a1a;
+  --focus: #a5b4fc;
+  --accent: #a5b4fc;
+  --accent-contrast: #0a0a0a;
+  --accent-soft: rgba(165, 180, 252, 0.12);
+  --important: #fda4af;
+  --material: #fda4af;
+  --danger: #fca5a5;
+  --danger-soft: rgba(252, 165, 165, 0.1);
+  --good: #86efac;
+  --good-soft: rgba(134, 239, 172, 0.1);
+  --warning: #fcd34d;
+  --warning-soft: rgba(252, 211, 77, 0.1);
+  --success: #86efac;
 }
 
 @theme inline {
@@ -37,7 +94,38 @@ body {
   color: var(--ink);
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
-  line-height: 1.6;
+  line-height: 1.55;
+}
+
+/* Light-on-dark reads thinner: compensate with a touch more leading and
+   tracking (perceptual, not stylistic). */
+:root[data-theme="dark"] body {
+  line-height: 1.62;
+  letter-spacing: 0.004em;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body {
+    line-height: 1.62;
+    letter-spacing: 0.004em;
+  }
+}
+
+/* Type roles: headings balance their own line breaks and track tighter;
+   prose avoids orphans. Data uses tabular figures so columns never wobble. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+  letter-spacing: -0.025em;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+time,
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Older pages still reference .font-serif; render them in the same modern
@@ -56,6 +144,27 @@ code,
 .mono,
 .font-mono {
   font-family: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+/* Browser surfaces carry the theme too: selection, caret, scrollbars,
+   focus rings, underlines. */
+::selection {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+input,
+textarea {
+  caret-color: var(--accent);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule) transparent;
+}
+
+a {
+  text-underline-offset: 3px;
 }
 
 :focus-visible {
@@ -87,7 +196,7 @@ code,
   overflow: visible;
   white-space: normal;
   background: var(--ink);
-  color: var(--surface);
+  color: var(--ink-contrast);
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
 }

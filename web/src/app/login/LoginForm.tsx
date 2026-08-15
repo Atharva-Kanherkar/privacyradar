@@ -93,7 +93,7 @@ export function LoginForm({ next }: { next: string }) {
           }}
           className={`min-h-10 rounded-md px-3 ${
             mode === "sign-in"
-              ? "bg-[var(--ink)] text-white"
+              ? "bg-[var(--ink)] text-[var(--ink-contrast)]"
               : "text-[var(--muted)]"
           }`}
         >
@@ -109,7 +109,7 @@ export function LoginForm({ next }: { next: string }) {
           }}
           className={`min-h-10 rounded-md px-3 ${
             mode === "sign-up"
-              ? "bg-[var(--ink)] text-white"
+              ? "bg-[var(--ink)] text-[var(--ink-contrast)]"
               : "text-[var(--muted)]"
           }`}
         >
@@ -173,7 +173,7 @@ export function LoginForm({ next }: { next: string }) {
         <button
           type="submit"
           disabled={pending}
-          className="min-h-11 w-full rounded-lg bg-[var(--ink)] px-4 font-sans text-sm font-medium text-white disabled:opacity-60"
+          className="min-h-11 w-full rounded-lg bg-[var(--ink)] px-4 font-sans text-sm font-medium text-[var(--ink-contrast)] disabled:opacity-60"
         >
           {pending
             ? "One moment…"

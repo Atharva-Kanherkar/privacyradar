@@ -41,7 +41,7 @@ export function ChangeCard({
     tone: "bg-[var(--panel)] text-[var(--muted)]",
   };
   return (
-    <article className="rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-5 shadow-sm">
+    <article className="rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-5">
       <p className="flex flex-wrap items-center gap-2 text-sm text-[var(--muted)]">
         <Link
           href={`/companies/${companySlug}`}

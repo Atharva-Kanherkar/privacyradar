@@ -63,10 +63,7 @@ export default async function Home() {
     <main id="main" className="mx-auto max-w-6xl overflow-x-hidden px-6 py-14">
       <section className="grid items-center gap-10 lg:grid-cols-[1.15fr_1fr]">
         <div>
-          <p className="inline-flex items-center rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
-            Evidence-backed policy watch
-          </p>
-          <h1 className="mt-4 text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+          <h1 className="text-[clamp(2.25rem,1.4rem+2.8vw,3.4rem)] font-semibold leading-[1.08] tracking-tight">
             What do the services you use disclose about your data?
           </h1>
           <p className="mt-4 max-w-xl text-lg text-[var(--muted)]">
@@ -95,7 +92,7 @@ export default async function Home() {
             </div>
           ) : null}
           {stats ? (
-            <p className="mt-6 text-sm text-[var(--muted)]">
+            <p className="tabular mt-6 text-sm text-[var(--muted)]">
               <strong className="font-semibold text-[var(--ink)]">
                 {stats.companies} companies
               </strong>{" "}
@@ -111,12 +108,9 @@ export default async function Home() {
         {spotlight && spotlightMeta ? (
           <Link
             href={`/companies/${spotlight.slug}`}
-            className="group relative rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--accent)] hover:shadow-md"
+            className="group relative rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-6 transition-all hover:-translate-y-0.5 hover:border-[var(--accent)]"
           >
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Real example, from the actual policy
-            </p>
-            <div className="mt-4 flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <CompanyLogo
                 name={spotlight.name}
                 website={spotlight.website}
@@ -132,9 +126,14 @@ export default async function Home() {
                 </p>
               </div>
             </div>
-            <blockquote className="mt-4 border-l-2 border-[var(--accent)] pl-3 text-sm italic leading-relaxed text-[var(--muted)]">
-              &ldquo;{spotlight.quote}&rdquo;
-            </blockquote>
+            <figure className="mt-4">
+              <blockquote className="border-l border-[var(--accent)] pl-3 text-sm italic leading-relaxed text-[var(--muted)]">
+                &ldquo;{spotlight.quote}&rdquo;
+              </blockquote>
+              <figcaption className="mt-2 pl-3 text-xs text-[var(--muted)]">
+                From {spotlight.name}&rsquo;s captured privacy policy, word for word
+              </figcaption>
+            </figure>
             <p className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--accent)]">
               See everything {spotlight.name} takes
               <ArrowRight
@@ -208,17 +207,21 @@ export default async function Home() {
         )}
       </section>
 
-      <section aria-label="How it works" className="mt-16 grid gap-4 sm:grid-cols-3">
+      <section
+        aria-label="How it works"
+        className="mt-16 grid gap-8 border-t border-[var(--rule)] pt-8 sm:grid-cols-3"
+      >
         {STEPS.map((step) => (
-          <div
-            key={step.title}
-            className="rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-5"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--accent)]">
-              <step.icon size={18} aria-hidden="true" />
-            </span>
-            <h2 className="mt-3 text-base font-semibold">{step.title}</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">{step.text}</p>
+          <div key={step.title}>
+            <h2 className="flex items-center gap-2 text-base font-semibold">
+              <step.icon
+                size={16}
+                aria-hidden="true"
+                className="text-[var(--accent)]"
+              />
+              {step.title}
+            </h2>
+            <p className="mt-1.5 text-sm text-[var(--muted)]">{step.text}</p>
           </div>
         ))}
       </section>

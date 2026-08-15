@@ -135,7 +135,7 @@ export function ChatAssistant({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-40 inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--accent)] px-5 text-sm font-medium text-white shadow-lg transition-transform hover:scale-[1.03]"
+        className="fixed bottom-6 right-6 z-40 inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--accent)] px-5 text-sm font-medium text-[var(--accent-contrast)] shadow-lg transition-transform hover:scale-[1.03]"
       >
         <Sparkles size={16} aria-hidden="true" />
         Ask about this policy
@@ -189,7 +189,7 @@ export function ChatAssistant({
                       key={suggestion}
                       type="button"
                       onClick={() => void send(suggestion)}
-                      className="min-h-10 rounded-full border border-[var(--rule)] bg-white px-4 text-left text-sm text-[var(--ink)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                      className="min-h-10 rounded-full border border-[var(--rule)] bg-[var(--surface)] px-4 text-left text-sm text-[var(--ink)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
                     >
                       {suggestion}
                     </button>
@@ -212,7 +212,7 @@ export function ChatAssistant({
                     <div
                       className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-[0.95rem] leading-relaxed ${
                         message.role === "user"
-                          ? "bg-[var(--ink)] text-white"
+                          ? "bg-[var(--ink)] text-[var(--ink-contrast)]"
                           : "bg-[var(--panel)] text-[var(--ink)]"
                       }`}
                     >
@@ -253,13 +253,13 @@ export function ChatAssistant({
                 rows={1}
                 maxLength={MAX_INPUT}
                 placeholder={`Message PrivacyRadar about ${companyName}…`}
-                className="max-h-40 min-h-11 w-full resize-y rounded-xl border border-[var(--rule)] bg-white px-4 py-2.5 text-[0.95rem] outline-none focus:border-[var(--accent)]"
+                className="max-h-40 min-h-11 w-full resize-y rounded-xl border border-[var(--rule)] bg-[var(--surface)] px-4 py-2.5 text-[0.95rem] outline-none focus:border-[var(--accent)]"
               />
               <button
                 type="submit"
                 disabled={streaming || !input.trim()}
                 aria-label="Send"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-white transition-opacity disabled:opacity-40"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--accent-contrast)] transition-opacity disabled:opacity-40"
               >
                 <SendHorizontal size={18} aria-hidden="true" />
               </button>

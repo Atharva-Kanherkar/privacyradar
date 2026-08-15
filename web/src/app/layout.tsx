@@ -18,6 +18,16 @@ const mono = Geist_Mono({
 
 const baseUrl = process.env.PUBLIC_BASE_URL ?? "https://privacyradar.local";
 
+export const viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
+};
+
+// Applies a stored theme choice before first paint so there is no flash.
+const themeInit = `try{var t=localStorage.getItem("theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}`;
+
 export const metadata: Metadata = {
   title: {
     default: "PrivacyRadar: see what companies take from you",
@@ -32,9 +42,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${inter.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-[var(--paper)] text-[var(--ink)]">
+        <script dangerouslySetInnerHTML={{ __html: themeInit }} />
         <SiteHeader />
         <div className="flex-1">{children}</div>
         <footer className="border-t border-[var(--rule)] bg-[var(--surface)]">

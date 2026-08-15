@@ -10,7 +10,7 @@ export function EvidenceQuote({
   region: string | null;
 }) {
   return (
-    <figure className="mt-3 border-l-2 border-[var(--important)] pl-3">
+    <figure className="mt-3 border-l border-[var(--important)] pl-3">
       <blockquote className="text-sm italic text-[var(--muted)]">“{quote}”</blockquote>
       <figcaption className="mt-2 font-mono text-xs text-[var(--muted)]">
         snapshot {snapshotId} · revision {revisionN}

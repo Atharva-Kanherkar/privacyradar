@@ -53,7 +53,7 @@ export function ClaimCard({ claim }: { claim: PublishedClaimRow }) {
         : "bg-[var(--panel)] text-[var(--muted)]";
   return (
     <details
-      className="group rounded-2xl border border-[var(--rule)] bg-[var(--surface)] shadow-sm open:border-[var(--accent)]"
+      className="group rounded-2xl border border-[var(--rule)] bg-[var(--surface)] open:border-[var(--accent)]"
     >
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
         <span
@@ -76,7 +76,7 @@ export function ClaimCard({ claim }: { claim: PublishedClaimRow }) {
         </span>
       </summary>
       <div className="border-t border-[var(--rule)] px-4 py-3">
-        <blockquote className="border-l-2 border-[var(--accent)] pl-3 text-sm italic text-[var(--muted)]">
+        <blockquote className="border-l border-[var(--accent)] pl-3 text-sm italic text-[var(--muted)]">
           &ldquo;{claim.quote}&rdquo;
         </blockquote>
         <p className="mt-2 font-mono text-[0.65rem] text-[var(--muted)]">
