@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Radar } from "lucide-react";
 import { AuthNav } from "./AuthNav";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -17,10 +16,9 @@ export function SiteHeader() {
         Skip to content
       </a>
       <div className="mx-auto flex max-w-6xl min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-3">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Radar size={20} aria-hidden="true" />
-          </span>
+        <Link href="/" className="flex items-center gap-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="" width={36} height={36} />
           <span className="text-lg font-semibold tracking-tight">
             PrivacyRadar
           </span>

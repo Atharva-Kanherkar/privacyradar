@@ -27,10 +27,24 @@ export async function generateMetadata({
   if (!result.ok || !result.data) {
     return { title: "Company" };
   }
+  const title = `What data ${result.data.company.name} collects`;
+  const description = `See exactly what ${result.data.company.name} says it collects about you, with the exact policy quotes.`;
   return {
-    title: `What data ${result.data.company.name} collects`,
-    description: `See exactly what ${result.data.company.name} says it collects about you, with the exact policy quotes.`,
+    title,
+    description,
     alternates: { canonical: `/companies/${slug}` },
+    openGraph: {
+      type: "article",
+      title,
+      description,
+      url: `/companies/${slug}`,
+      siteName: "PrivacyRadar",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
   };
 }
 

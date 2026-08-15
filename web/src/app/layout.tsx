@@ -28,14 +28,31 @@ export const viewport = {
 // Stamps the theme before first paint: stored choice, else system preference.
 const themeInit = `try{var t=localStorage.getItem("theme");if(t!=="dark"&&t!=="light"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.setAttribute("data-theme",t)}catch(e){}`;
 
+const description =
+  "PrivacyRadar reads privacy policies so you don't have to. See exactly what data each company collects (your voice, location, messages) with the receipts, and get alerted when it changes.";
+
 export const metadata: Metadata = {
   title: {
     default: "PrivacyRadar: see what companies take from you",
     template: "%s · PrivacyRadar",
   },
-  description:
-    "PrivacyRadar reads privacy policies so you don't have to. See exactly what data each company collects (your voice, location, messages) with the receipts, and get alerted when it changes.",
+  description,
   metadataBase: new URL(baseUrl),
+  applicationName: "PrivacyRadar",
+  openGraph: {
+    type: "website",
+    siteName: "PrivacyRadar",
+    title: "PrivacyRadar: see what companies take from you",
+    description,
+    url: "/",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PrivacyRadar: see what companies take from you",
+    description,
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

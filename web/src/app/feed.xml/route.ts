@@ -1,5 +1,7 @@
 import { listEvents } from "@/lib/db";
 
+const base = process.env.PUBLIC_BASE_URL ?? "https://privacyradar.local";
+
 export const dynamic = "force-dynamic";
 
 export async function GET() {
@@ -8,7 +10,7 @@ export async function GET() {
     .map(
       (e) => `    <item>
       <title>${escapeXml(`${e.name}: ${e.headline}`)}</title>
-      <link>https://privacyradar.local/companies/${e.slug}</link>
+      <link>${base}/companies/${e.slug}</link>
       <guid>${e.id}</guid>
       <pubDate>${new Date(e.published_at).toUTCString()}</pubDate>
       <description>${escapeXml(e.summary)}</description>
@@ -20,7 +22,7 @@ export async function GET() {
 <rss version="2.0">
   <channel>
     <title>privacyradar - material privacy changes</title>
-    <link>https://privacyradar.local</link>
+    <link>${base}</link>
     <description>What data companies take, and what just changed.</description>
 ${items}
   </channel>
