@@ -1,9 +1,15 @@
 import Link from "next/link";
 
-const MATERIALITY: Record<string, string> = {
-  material: "Important",
-  unknown: "Moderate",
-  cosmetic: "Minor",
+const MATERIALITY: Record<string, { label: string; tone: string }> = {
+  material: {
+    label: "Important",
+    tone: "bg-[var(--danger-soft)] text-[var(--danger)]",
+  },
+  unknown: {
+    label: "Moderate",
+    tone: "bg-[var(--warning-soft)] text-[var(--warning)]",
+  },
+  cosmetic: { label: "Minor", tone: "bg-muted text-muted-foreground" },
 };
 
 export function ChangeCard({
@@ -30,28 +36,35 @@ export function ChangeCard({
     day: "numeric",
     year: "numeric",
   });
+  const badge = MATERIALITY[materiality] ?? {
+    label: materiality,
+    tone: "bg-muted text-muted-foreground",
+  };
   return (
-    <article className="py-6">
-      <p className="font-sans text-sm text-[var(--muted)]">
-        <Link href={`/companies/${companySlug}`} className="hover:underline">
+    <article className="rounded-xl border border-border bg-card p-5">
+      <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+        <Link
+          href={`/companies/${companySlug}`}
+          className="font-medium text-foreground hover:underline"
+        >
           {companyName}
         </Link>
-        <span className="mx-2" aria-hidden="true">
-          ·
+        <span
+          className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${badge.tone}`}
+        >
+          {badge.label}
         </span>
-        <span>{MATERIALITY[materiality] ?? materiality}</span>
-        {corrected ? <span> · corrected</span> : null}
-        <span className="mx-2" aria-hidden="true">
-          ·
-        </span>
+        {corrected ? <span className="text-xs">corrected</span> : null}
         <time dateTime={publishedAt} className="font-mono text-xs">
           {when}
         </time>
       </p>
-      <h2 className="mt-2 text-2xl leading-snug">
-        <Link href={`/changes/${id}`}>{headline}</Link>
+      <h2 className="mt-2 text-xl font-semibold leading-snug tracking-tight">
+        <Link href={`/changes/${id}`} className="hover:underline">
+          {headline}
+        </Link>
       </h2>
-      <p className="mt-2 max-w-2xl text-[var(--muted)]">{summary}</p>
+      <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">{summary}</p>
     </article>
   );
 }

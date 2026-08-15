@@ -2,12 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ChangeCard } from "@/components/ChangeCard";
+import { ChatAssistant } from "@/components/ChatAssistant";
+import { ClaimCard } from "@/components/ClaimCard";
+import { CompanyLogo } from "@/components/CompanyLogo";
 import { DisclosureRow } from "@/components/DisclosureRow";
 import { FreshnessLabel } from "@/components/FreshnessLabel";
 import { StatePanel } from "@/components/StatePanel";
-import { AssistantPanel } from "@/components/AssistantPanel";
 import { WatchButton } from "@/components/WatchButton";
-import { loadCompany } from "@/lib/db";
+import { Button } from "@/components/ui/button";
+import { assistantEnabled } from "@/lib/assistant";
+import { loadCompany, type PublishedClaimRow } from "@/lib/db";
 import { getSessionFromCookies } from "@/lib/session";
 import { followCompany, isWatching } from "@/lib/watches";
 
@@ -23,11 +27,32 @@ export async function generateMetadata({
   if (!result.ok || !result.data) {
     return { title: "Company" };
   }
+  const title = `What data ${result.data.company.name} collects`;
+  const description = `See exactly what ${result.data.company.name} says it collects about you, with the exact policy quotes.`;
   return {
-    title: result.data.company.name,
-    description: `Disclosed privacy practices for ${result.data.company.name}, with captured quotes.`,
+    title,
+    description,
     alternates: { canonical: `/companies/${slug}` },
+    openGraph: {
+      type: "article",
+      title,
+      description,
+      url: `/companies/${slug}`,
+      siteName: "PrivacyRadar",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
   };
+}
+
+function bySeverity(a: PublishedClaimRow, b: PublishedClaimRow): number {
+  const rank = (claim: PublishedClaimRow) =>
+    claim.category === "sensitive" ? 0 : claim.polarity === "disclosed" ? 1 : 2;
+  const diff = rank(a) - rank(b);
+  return diff !== 0 ? diff : a.attribute.localeCompare(b.attribute);
 }
 
 export default async function CompanyPage({
@@ -35,14 +60,14 @@ export default async function CompanyPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ watch?: string; ask?: string }>;
+  searchParams: Promise<{ watch?: string }>;
 }) {
   const { slug } = await params;
   const query = await searchParams;
   const result = await loadCompany(slug);
   if (!result.ok) {
     return (
-      <main id="main" className="mx-auto max-w-5xl px-6 py-12">
+      <main id="main" className="mx-auto max-w-6xl px-6 py-12">
         <StatePanel title="Company page unavailable">
           We could not load this company. A failed fetch is not an empty policy.
         </StatePanel>
@@ -61,125 +86,209 @@ export default async function CompanyPage({
     : false;
 
   const { company, events, claims } = result.data;
-  const glance = ["sensitive", "sharing", "purpose", "retention", "control"];
-  const glanceClaims = glance
-    .map((category) => claims.find((claim) => claim.category === category))
-    .filter((claim) => claim !== undefined);
+
+  const collectionClaims = claims.filter(
+    (claim) =>
+      (claim.category === "data_collected" || claim.category === "sensitive") &&
+      claim.attribute !== "none_disclosed",
+  );
+  const collected = collectionClaims
+    .filter((claim) => claim.polarity === "disclosed")
+    .sort(bySeverity);
+  // "We do not collect X" and unclear claims must not sit under a heading
+  // that says the company takes them.
+  const notCollected = collectionClaims
+    .filter((claim) => claim.polarity !== "disclosed")
+    .sort(bySeverity);
+  const purposes = claims
+    .filter((claim) => claim.category === "purpose" && claim.polarity === "disclosed")
+    .sort(bySeverity);
+  const practices = claims
+    .filter(
+      (claim) =>
+        claim.category === "sharing" ||
+        claim.category === "retention" ||
+        claim.category === "control",
+    )
+    .sort(bySeverity);
+  const chatOn = assistantEnabled();
 
   return (
-    <main id="main" className="mx-auto max-w-5xl px-6 py-12">
-      <p className="font-sans text-sm text-[var(--muted)]">
+    <main id="main" className="mx-auto max-w-6xl px-6 py-12">
+      <p className="text-sm text-muted-foreground">
         <Link href="/companies" className="hover:underline">
-          Catalog
+          Companies
         </Link>
         <span className="mx-2">/</span>
         {company.category}
       </p>
-      <h1 className="mt-2 font-serif text-4xl tracking-tight">{company.name}</h1>
-      <div className="mt-4 flex flex-wrap gap-3">
-        <WatchButton
-          slug={company.slug}
-          signedIn={Boolean(session?.user)}
-          watching={watching}
-        />
-        <Link
-          href={`/compare?companies=${company.slug}`}
-          className="inline-flex min-h-11 items-center border border-[var(--rule)] px-4 font-sans text-sm"
-        >
-          Compare
-        </Link>
-      </div>
-      <p className="mt-3 font-sans text-sm text-[var(--muted)]">
-        {company.privacy_url ? (
-          <a href={company.privacy_url} className="underline" rel="noreferrer">
-            Current privacy policy
-          </a>
-        ) : (
-          "No privacy URL"
-        )}
-        <span className="mx-2" aria-hidden="true">
-          ·
-        </span>
-        <span>source region {company.region ?? "not labeled"}</span>
-        <span className="mx-2" aria-hidden="true">
-          ·
-        </span>
-        <FreshnessLabel
-          lastCheckedAt={company.last_verified_at}
-          health={company.source_health}
-        />
-      </p>
-
-      <h2 className="mt-12 font-serif text-xl">At a glance</h2>
-      {glanceClaims.length === 0 ? (
-        <p className="mt-3 text-[var(--muted)]">
-          We have not found published evidence for the five decision dimensions
-          yet. That is not a claim that the company discloses nothing.
-        </p>
-      ) : (
-        <ul className="mt-3 font-sans text-sm">
-          {glanceClaims.map((claim) => (
-            <li key={claim.claim_key}>
-              {claim.category.replaceAll("_", " ")}: {claim.attribute.replaceAll("_", " ")}{" "}
-              ({claim.polarity})
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <h2 className="mt-12 font-serif text-xl">What the company discloses</h2>
-      {claims.length === 0 ? (
-        <p className="mt-3 text-[var(--muted)]">
-          {company.current_snapshot_id
-            ? "We have not found published evidence yet. Unpublished model output is not shown."
-            : "Not yet checked. A missing or failed fetch is not an empty policy."}
-        </p>
-      ) : (
-        <ul className="mt-4 space-y-4">
-          {claims.map((claim) => (
-            <DisclosureRow
-              key={claim.claim_key}
-              claimKey={claim.claim_key}
-              category={claim.category}
-              attribute={claim.attribute}
-              polarity={claim.polarity}
-              quote={claim.quote}
-              snapshotId={claim.snapshot_id}
-              revisionN={claim.revision_n}
-              region={company.region}
+      <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <CompanyLogo
+            name={company.name}
+            website={company.website}
+            size={56}
+            className="mt-1"
+          />
+          <div>
+            <h1 className="text-4xl font-semibold tracking-tight">{company.name}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+            {company.privacy_url ? (
+              <a href={company.privacy_url} className="underline" rel="noreferrer">
+                Current privacy policy
+              </a>
+            ) : (
+              "No privacy URL"
+            )}
+            <span className="mx-2" aria-hidden="true">
+              ·
+            </span>
+            <FreshnessLabel
+              lastCheckedAt={company.last_verified_at}
+              health={company.source_health}
             />
-          ))}
-        </ul>
-      )}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <WatchButton
+            slug={company.slug}
+            signedIn={Boolean(session?.user)}
+            watching={watching}
+          />
+          <Button asChild variant="outline" className="min-h-11 px-5">
+            <Link href={`/compare?companies=${company.slug}`}>Compare</Link>
+          </Button>
+        </div>
+      </div>
 
-      <h2 className="mt-12 font-serif text-xl">What changed</h2>
-      {events.length === 0 ? (
-        <p className="mt-3 text-[var(--muted)]">No published changes yet.</p>
-      ) : (
-        <ol className="mt-4 divide-y divide-[var(--rule)] border-y border-[var(--rule)]">
-          {events.map((event) => (
-            <li key={event.id}>
-              <ChangeCard
-                id={event.id}
-                companyName={company.name}
-                companySlug={company.slug}
-                headline={event.headline}
-                summary={event.summary}
-                materiality={event.materiality}
-                publishedAt={event.published_at}
-                corrected={event.publication_state === "corrected"}
+      <section className="mt-12">
+        <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+          What {company.name} takes from you.{" "}
+          <span className="lede-muted font-medium">
+            Straight from the captured policy. Tap any row for the exact quote.
+          </span>
+        </h2>
+        {collected.length === 0 ? (
+          <p className="mt-4 max-w-xl text-muted-foreground">
+            {company.current_snapshot_id
+              ? "We have not found published evidence yet. Unpublished model output is not shown."
+              : "Not yet checked. A missing or failed fetch is not an empty policy."}
+          </p>
+        ) : (
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {collected.map((claim) => (
+              <ClaimCard key={claim.claim_key} claim={claim} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {notCollected.length > 0 ? (
+        <section className="mt-12">
+          <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+            What the policy denies or leaves unclear.
+          </h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {notCollected.map((claim) => (
+              <ClaimCard key={claim.claim_key} claim={claim} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {purposes.length > 0 ? (
+        <section className="mt-12">
+          <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+            Why they use your data.
+          </h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {purposes.map((claim) => (
+              <ClaimCard key={claim.claim_key} claim={claim} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {practices.length > 0 ? (
+        <section className="mt-12">
+          <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+            Sharing, retention &amp; your controls.
+          </h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {practices.map((claim) => (
+              <ClaimCard key={claim.claim_key} claim={claim} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="mt-12">
+        <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+          What changed.
+        </h2>
+        {events.length === 0 ? (
+          <p className="mt-3 text-muted-foreground">No published changes yet.</p>
+        ) : (
+          <ol className="mt-5 space-y-4">
+            {events.map((event) => (
+              <li key={event.id}>
+                <ChangeCard
+                  id={event.id}
+                  companyName={company.name}
+                  companySlug={company.slug}
+                  headline={event.headline}
+                  summary={event.summary}
+                  materiality={event.materiality}
+                  publishedAt={event.published_at}
+                  corrected={event.publication_state === "corrected"}
+                />
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+
+      {claims.length > 0 ? (
+        <details className="mt-12 rounded-xl border border-border bg-card p-5">
+          <summary className="min-h-11 cursor-pointer text-sm font-medium">
+            Full evidence record ({claims.length} published claims)
+          </summary>
+          <ul className="mt-4 space-y-4">
+            {claims.map((claim) => (
+              <DisclosureRow
+                key={claim.claim_key}
+                claimKey={claim.claim_key}
+                category={claim.category}
+                attribute={claim.attribute}
+                polarity={claim.polarity}
+                quote={claim.quote}
+                snapshotId={claim.snapshot_id}
+                revisionN={claim.revision_n}
+                region={company.region}
               />
-            </li>
-          ))}
-        </ol>
-      )}
+            ))}
+          </ul>
+        </details>
+      ) : null}
 
-      <p className="mt-10 font-sans text-sm">
+      <p className="mt-8 text-sm">
         <Link href="/corrections" className="underline">
           Public correction history
         </Link>
       </p>
-      <AssistantPanel slug={company.slug} askStatus={query.ask} />
+
+      {chatOn ? (
+        <ChatAssistant slug={company.slug} companyName={company.name} />
+      ) : (
+        <section className="mt-12 rounded-xl border border-border bg-card p-5">
+          <h2 className="text-base font-semibold">Ask about this policy</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            The cited assistant is off. Read the published disclosures above.
+            This is not legal advice.
+          </p>
+        </section>
+      )}
     </main>
   );
 }

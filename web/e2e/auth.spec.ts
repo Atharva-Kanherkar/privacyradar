@@ -8,7 +8,8 @@ function uniqueEmail(label: string): string {
 
 async function requestMagicLink(page: Page, email: string): Promise<void> {
   await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
+  await page.getByText("Prefer a single-use email link?").click();
+  await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByRole("button", { name: "Email me a link" }).click();
   await expect(page.getByRole("status")).toHaveText(PUBLIC_COPY);
 }

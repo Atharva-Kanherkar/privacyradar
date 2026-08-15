@@ -29,7 +29,8 @@ function runWorker(args: string[]): string {
 
 async function signIn(page: Page, request: APIRequestContext, email: string): Promise<void> {
   await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
+  await page.getByText("Prefer a single-use email link?").click();
+  await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByRole("button", { name: "Email me a link" }).click();
   await expect(page.getByRole("status")).toContainText("If that address can be used");
   const inbox = await request.get(

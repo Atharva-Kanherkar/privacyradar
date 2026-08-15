@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
-import { Newsreader, Geist_Mono, Source_Sans_3 } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
-const serif = Newsreader({
-  variable: "--font-newsreader",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const sans = Source_Sans_3({
-  variable: "--font-source-sans",
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
   display: "swap",
 });
@@ -22,27 +16,58 @@ const mono = Geist_Mono({
   display: "swap",
 });
 
+const baseUrl = process.env.PUBLIC_BASE_URL ?? "https://privacyradar.local";
+
+export const viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
+};
+
+// Stamps the theme before first paint: stored choice, else system preference.
+const themeInit = `try{var t=localStorage.getItem("theme");if(t!=="dark"&&t!=="light"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.setAttribute("data-theme",t)}catch(e){}`;
+
+const description =
+  "PrivacyRadar reads privacy policies so you don't have to. See exactly what data each company collects (your voice, location, messages) with the receipts, and get alerted when it changes.";
+
 export const metadata: Metadata = {
   title: {
-    default: "PrivacyRadar",
+    default: "PrivacyRadar: see what companies take from you",
     template: "%s · PrivacyRadar",
   },
-  description:
-    "Evidence-backed disclosed privacy practices and material policy changes. Dated. Correctable.",
-  metadataBase: new URL("https://privacyradar.local"),
+  description,
+  metadataBase: new URL(baseUrl),
+  applicationName: "PrivacyRadar",
+  openGraph: {
+    type: "website",
+    siteName: "PrivacyRadar",
+    title: "PrivacyRadar: see what companies take from you",
+    description,
+    url: "/",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PrivacyRadar: see what companies take from you",
+    description,
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${serif.variable} ${sans.variable} ${mono.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`${geist.variable} ${mono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-[var(--paper)] text-[var(--ink)]">
+      <body className="flex min-h-full flex-col bg-background text-foreground">
+        <script dangerouslySetInnerHTML={{ __html: themeInit }} />
         <SiteHeader />
         <div className="flex-1">{children}</div>
-        <footer className="border-t border-[var(--rule)]">
-          <p className="mx-auto max-w-5xl px-6 py-4 font-sans text-xs text-[var(--muted)]">
+        <footer className="border-t border-border bg-card">
+          <p className="mx-auto max-w-6xl px-6 py-5 text-xs text-muted-foreground">
             Not legal advice. We report what companies disclose in captured
             policies, with quotes. A missing fetch is not an empty policy.
           </p>

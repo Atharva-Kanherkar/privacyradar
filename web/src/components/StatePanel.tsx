@@ -7,11 +7,11 @@ export function StatePanel({
 }) {
   return (
     <section
-      className="mt-8 border border-[var(--rule)] bg-[var(--surface)] p-6"
+      className="mt-8 border border-border bg-card p-6"
       aria-live="polite"
     >
       <h2 className="font-sans text-lg">{title}</h2>
-      <p className="mt-2 text-[var(--muted)]">{children}</p>
+      <p className="mt-2 text-muted-foreground">{children}</p>
     </section>
   );
 }

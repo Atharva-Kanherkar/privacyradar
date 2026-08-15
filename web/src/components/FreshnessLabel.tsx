@@ -12,7 +12,7 @@ export function FreshnessLabel({
   if (health === "healthy") status = "healthy";
   if (health === "degraded" || health === "quarantined") status = "check delayed";
   return (
-    <span className="font-sans text-sm text-[var(--muted)]">
+    <span className="font-sans text-sm text-muted-foreground">
       <span className="font-mono text-xs">{checked}</span>
       <span className="mx-2" aria-hidden="true">
         ·

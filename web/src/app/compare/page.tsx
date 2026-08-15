@@ -42,8 +42,8 @@ function ComparisonMatrix({
             Published disclosures by dimension and company. Not a privacy score.
           </caption>
           <thead>
-            <tr className="border-b border-[var(--rule)]">
-              <th scope="col" className="py-2 font-normal text-[var(--muted)]">
+            <tr className="border-b border-border">
+              <th scope="col" className="py-2 font-normal text-muted-foreground">
                 Dimension
               </th>
               {comparison.companies.map((company) => (
@@ -51,7 +51,7 @@ function ComparisonMatrix({
                   <Link href={`/companies/${company.slug}`} className="underline">
                     {company.name}
                   </Link>
-                  <p className="mt-1 font-sans text-xs text-[var(--muted)]">
+                  <p className="mt-1 font-sans text-xs text-muted-foreground">
                     source region {company.region ?? "not labeled"}
                     {company.corrected ? " · corrected" : ""}
                   </p>
@@ -72,7 +72,7 @@ function ComparisonMatrix({
           </thead>
           <tbody>
             {comparison.dimensions.map((row) => (
-              <tr key={row.category} className="border-b border-[var(--rule)] align-top">
+              <tr key={row.category} className="border-b border-border align-top">
                 <th scope="row" className="py-3 font-normal">
                   {row.category.replaceAll("_", " ")}
                 </th>
@@ -104,7 +104,7 @@ function ComparisonMatrix({
               {row.cells.map((cell) => {
                 const company = comparison.companies.find((item) => item.slug === cell.slug);
                 return (
-                  <div key={cell.slug} className="border border-[var(--rule)] p-4">
+                  <div key={cell.slug} className="border border-border p-4">
                     <dt className="font-sans text-sm">{company?.name ?? cell.slug}</dt>
                     <dd className="mt-2">
                       {cellCopy(cell)}
@@ -149,13 +149,13 @@ export default async function ComparePage({
   return (
     <main id="main" className="mx-auto max-w-5xl px-6 py-12">
       <h1 className="font-serif text-4xl tracking-tight">Compare companies</h1>
-      <p className="mt-3 max-w-2xl text-[var(--muted)]">
+      <p className="mt-3 max-w-2xl text-muted-foreground">
         Side-by-side published disclosures. This is not a privacy score and not
         legal advice. Unknown stays unknown.
       </p>
       <form action="/compare/select" method="post" className="mt-8">
         <fieldset>
-          <legend className="font-sans text-sm">Select 2–4 companies</legend>
+          <legend className="font-sans text-sm">Select 2 to 4 companies</legend>
           {!catalog.ok ? (
             <StatePanel title="Catalog unavailable">
               We could not load companies to compare.
@@ -180,7 +180,7 @@ export default async function ComparePage({
         </fieldset>
         <button
           type="submit"
-          className="mt-4 min-h-11 border border-[var(--ink)] px-4 font-sans text-sm"
+          className="mt-4 min-h-11 border border-foreground px-4 font-sans text-sm"
         >
           Compare
         </button>
@@ -191,7 +191,7 @@ export default async function ComparePage({
         </p>
       ) : null}
       {comparison.status === "need_selection" ? (
-        <p className="mt-8 text-[var(--muted)]">
+        <p className="mt-8 text-muted-foreground">
           Choose at least two companies. An empty comparison is not a finding.
         </p>
       ) : null}
@@ -209,7 +209,7 @@ export default async function ComparePage({
       ) : null}
       {comparison.status === "comparable" ? (
         <>
-          <p className="mt-6 font-sans text-sm text-[var(--muted)]">
+          <p className="mt-6 font-sans text-sm text-muted-foreground">
             Shareable URL: {canonicalComparePath(slugs)}
           </p>
           <ComparisonMatrix comparison={comparison} slugs={slugs} />

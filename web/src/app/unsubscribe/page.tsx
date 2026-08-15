@@ -31,7 +31,7 @@ export default async function UnsubscribePage({
   return (
     <main id="main" className="mx-auto max-w-xl px-6 py-12">
       <h1 className="font-serif text-4xl tracking-tight">Unsubscribe</h1>
-      <p className="mt-3 text-[var(--muted)]">
+      <p className="mt-3 text-muted-foreground">
         {companyMute
           ? "This will mute alerts for one company. You can still watch it on My Radar."
           : "This will stop transactional change emails for this address."}
@@ -40,7 +40,7 @@ export default async function UnsubscribePage({
         <input type="hidden" name="token" value={token} />
         <button
           type="submit"
-          className="min-h-11 border border-[var(--ink)] px-4 font-sans text-sm"
+          className="min-h-11 border border-foreground px-4 font-sans text-sm"
         >
           Confirm unsubscribe
         </button>

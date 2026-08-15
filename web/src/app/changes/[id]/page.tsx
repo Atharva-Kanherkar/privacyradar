@@ -43,7 +43,7 @@ export default async function ChangePage({
 
   return (
     <main id="main" className="mx-auto max-w-5xl px-6 py-12">
-      <p className="font-sans text-sm text-[var(--muted)]">
+      <p className="font-sans text-sm text-muted-foreground">
         <Link href={`/companies/${event.slug}`} className="hover:underline">
           {event.name}
         </Link>
@@ -51,7 +51,7 @@ export default async function ChangePage({
         {event.publication_state === "corrected" ? "Corrected change" : "Change"}
       </p>
       <h1 className="mt-2 font-serif text-4xl tracking-tight">{event.headline}</h1>
-      <p className="mt-3 font-mono text-xs text-[var(--muted)]">
+      <p className="mt-3 font-mono text-xs text-muted-foreground">
         {event.materiality} ·{" "}
         <time dateTime={event.published_at}>
           {new Date(event.published_at).toLocaleString("en-US")}
@@ -60,19 +60,19 @@ export default async function ChangePage({
       <p className="mt-6 max-w-2xl">{event.summary}</p>
       <h2 className="mt-10 font-serif text-xl">Evidence</h2>
       {quotes.length === 0 ? (
-        <p className="mt-3 text-[var(--muted)]">
+        <p className="mt-3 text-muted-foreground">
           We have not found quotes on this published change.
         </p>
       ) : (
         <ul className="mt-4 space-y-4">
           {quotes.map((quote) => (
             <li key={quote.text}>
-              <figure className="border-l-2 border-[var(--important)] pl-3">
-                <blockquote className="text-sm italic text-[var(--muted)]">
+              <figure className="border-l border-[var(--important)] pl-3">
+                <blockquote className="text-sm italic text-muted-foreground">
                   “{quote.text}”
                 </blockquote>
                 {quote.section ? (
-                  <figcaption className="mt-2 font-mono text-xs text-[var(--muted)]">
+                  <figcaption className="mt-2 font-mono text-xs text-muted-foreground">
                     {quote.section}
                   </figcaption>
                 ) : null}

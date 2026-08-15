@@ -12,11 +12,13 @@ export default async function LoginPage({
   const next = safeCallbackURL(params.next);
 
   return (
-    <main id="main" className="mx-auto max-w-xl px-6 py-12">
-      <h1 className="font-serif text-4xl tracking-tight">Sign in</h1>
-      <p className="mt-3 text-[var(--muted)]">
-        We email a single-use link. Browsing companies does not require an
-        account. We do not infer your region from your IP address.
+    <main id="main" className="mx-auto max-w-md px-6 py-12">
+      <h1 className="font-display text-3xl font-semibold tracking-tight">
+        Welcome back
+      </h1>
+      <p className="mt-3 text-muted-foreground">
+        Sign in to watch companies and get alerts when their privacy policies
+        change. Browsing never requires an account.
       </p>
       <LoginForm next={next} />
     </main>

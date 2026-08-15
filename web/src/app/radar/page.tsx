@@ -47,7 +47,7 @@ export default async function RadarPage() {
           </Link>
         </p>
       </div>
-      <p className="mt-3 text-[var(--muted)]">
+      <p className="mt-3 text-muted-foreground">
         {watching.length} watched. Only published material changes appear here.
       </p>
       {events.length === 0 ? (
@@ -56,7 +56,7 @@ export default async function RadarPage() {
           public category, not by inferred interest.
         </StatePanel>
       ) : (
-        <ol className="mt-8 divide-y divide-[var(--rule)] border-y border-[var(--rule)]">
+        <ol className="mt-8 divide-y divide-border border-y border-border">
           {events.map((event) => (
             <li key={event.id}>
               <ChangeCard
@@ -81,7 +81,7 @@ export default async function RadarPage() {
                 <Link href={`/companies/${company.slug}`} className="underline">
                   {company.name}
                 </Link>
-                <span className="text-[var(--muted)]"> · {company.category}</span>
+                <span className="text-muted-foreground"> · {company.category}</span>
               </li>
             ))}
           </ul>

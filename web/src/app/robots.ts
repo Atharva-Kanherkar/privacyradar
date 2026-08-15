@@ -1,8 +1,10 @@
 import type { MetadataRoute } from "next";
 
+const base = process.env.PUBLIC_BASE_URL ?? "https://privacyradar.local";
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: { userAgent: "*", allow: "/" },
-    sitemap: "https://privacyradar.local/sitemap.xml",
+    sitemap: `${base}/sitemap.xml`,
   };
 }

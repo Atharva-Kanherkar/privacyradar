@@ -2,7 +2,7 @@ export default function MethodologyPage() {
   return (
     <main id="main" className="mx-auto max-w-2xl px-6 py-12">
       <h1 className="font-serif text-4xl tracking-tight">Methodology</h1>
-      <div className="mt-6 space-y-4 text-[var(--muted)]">
+      <div className="mt-6 space-y-4 text-muted-foreground">
         <p>
           PrivacyRadar captures public privacy-policy pages, hashes the cleaned
           text, and only then asks a model what the company discloses. If the

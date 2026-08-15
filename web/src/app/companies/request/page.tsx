@@ -19,7 +19,7 @@ export default async function CompanyRequestPage({
         </Link>
       </p>
       <h1 className="mt-2 font-serif text-4xl tracking-tight">Request a company</h1>
-      <p className="mt-3 text-[var(--muted)]">
+      <p className="mt-3 text-muted-foreground">
         A nomination is <strong>requested, not monitored</strong>. We do not
         fetch the URL you submit, and we do not promise a date.
       </p>
@@ -43,7 +43,7 @@ export default async function CompanyRequestPage({
             id="name"
             name="name"
             required
-            className="mt-1 min-h-11 w-full border border-[var(--rule)] bg-[var(--surface)] px-3"
+            className="mt-1 min-h-11 w-full border border-border bg-card px-3"
           />
         </div>
         <div>
@@ -55,7 +55,7 @@ export default async function CompanyRequestPage({
             name="website"
             required
             placeholder="https://example.com"
-            className="mt-1 min-h-11 w-full border border-[var(--rule)] bg-[var(--surface)] px-3"
+            className="mt-1 min-h-11 w-full border border-border bg-card px-3"
           />
         </div>
         <div>
@@ -66,12 +66,12 @@ export default async function CompanyRequestPage({
             id="category"
             name="category"
             defaultValue="consumer"
-            className="mt-1 min-h-11 w-full border border-[var(--rule)] bg-[var(--surface)] px-3"
+            className="mt-1 min-h-11 w-full border border-border bg-card px-3"
           />
         </div>
         <button
           type="submit"
-          className="min-h-11 border border-[var(--ink)] px-4 font-sans text-sm"
+          className="min-h-11 border border-foreground px-4 font-sans text-sm"
         >
           Submit request
         </button>

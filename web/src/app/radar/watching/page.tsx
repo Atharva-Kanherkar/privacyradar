@@ -23,7 +23,7 @@ export default async function WatchingPage() {
       </p>
       <h1 className="mt-2 font-serif text-4xl tracking-tight">Watching</h1>
       {watching.length === 0 ? (
-        <p className="mt-6 text-[var(--muted)]">
+        <p className="mt-6 text-muted-foreground">
           You are not watching any companies.{" "}
           <Link href="/companies" className="underline">
             Browse the catalog
@@ -35,13 +35,13 @@ export default async function WatchingPage() {
           {watching.map((company) => (
             <li
               key={company.slug}
-              className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--rule)] pb-4"
+              className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4"
             >
               <div>
                 <Link href={`/companies/${company.slug}`} className="underline">
                   {company.name}
                 </Link>
-                <p className="font-sans text-sm text-[var(--muted)]">
+                <p className="font-sans text-sm text-muted-foreground">
                   {company.category}
                 </p>
               </div>

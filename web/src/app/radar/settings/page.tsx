@@ -27,7 +27,7 @@ export default async function RadarSettingsPage() {
         </Link>
       </p>
       <h1 className="mt-2 font-serif text-4xl tracking-tight">Alert settings</h1>
-      <p className="mt-3 text-[var(--muted)]">
+      <p className="mt-3 text-muted-foreground">
         Alerts are transactional. We email only published material changes for
         companies you watch. Unpublished extraction never notifies you.
       </p>
@@ -45,13 +45,13 @@ export default async function RadarSettingsPage() {
         ))}
         <button
           type="submit"
-          className="mt-4 min-h-11 border border-[var(--ink)] px-4 font-sans text-sm"
+          className="mt-4 min-h-11 border border-foreground px-4 font-sans text-sm"
         >
           Save alert settings
         </button>
       </form>
       {pref.muted_company_ids.length > 0 ? (
-        <p className="mt-8 font-sans text-sm text-[var(--muted)]">
+        <p className="mt-8 font-sans text-sm text-muted-foreground">
           {pref.muted_company_ids.length} companies muted via unsubscribe links.
         </p>
       ) : null}

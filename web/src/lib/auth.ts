@@ -82,7 +82,11 @@ export const auth = betterAuth({
     "http://127.0.0.1:3000",
     "http://localhost:3000",
   ],
-  emailAndPassword: { enabled: false },
+  emailAndPassword: {
+    enabled: true,
+    minPasswordLength: 8,
+    requireEmailVerification: false,
+  },
   logger: { disabled: true },
   user: {
     modelName: "auth_users",

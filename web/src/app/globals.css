@@ -1,37 +1,193 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
+@custom-variant dark (&:is([data-theme="dark"] *), &:is([data-theme="dark"]));
+
+/* Monochrome system: black, greys, white. No hue anywhere.
+   Light is the default; dark is matte black. */
 :root {
-  --paper: #f4efe6;
-  --ink: #1c1917;
-  --muted: #44403c;
-  --rule: #d6cfc3;
-  --surface: #fffdf8;
-  --card: #fffdf8;
-  --focus: #1d4ed8;
-  --important: #9f1239;
-  --material: #9f1239;
-  --warning: #92400e;
-  --success: #166534;
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #171717;
+  --primary: #171717;
+  --primary-foreground: #fafafa;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #171717;
+  --muted: #f5f5f5;
+  --muted-foreground: #525252;
+  --accent: #f5f5f5;
+  --accent-foreground: #171717;
+  --destructive: #171717;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #a3a3a3;
+  --radius: 0.625rem;
+
+  /* Legacy aliases: older pages keep working, in monochrome. */
+  --paper: var(--background);
+  --ink: var(--foreground);
+  --ink-contrast: var(--primary-foreground);
+  --rule: var(--border);
+  --surface: var(--card);
+  --panel: var(--muted);
+  --focus: var(--foreground);
+  --important: var(--foreground);
+  --material: var(--foreground);
+  --danger: #171717;
+  --danger-soft: #e8e8e8;
+  --good: #525252;
+  --good-soft: #f5f5f5;
+  --warning: #525252;
+  --warning-soft: #f5f5f5;
+  --success: #525252;
+  --accent-soft: var(--muted);
+  --accent-contrast: var(--background);
+}
+
+/* Matte black dark theme. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --card: #111111;
+  --card-foreground: #ededed;
+  --popover: #111111;
+  --popover-foreground: #ededed;
+  --primary: #ededed;
+  --primary-foreground: #0a0a0a;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ededed;
+  --muted: #1a1a1a;
+  --muted-foreground: #a3a3a3;
+  --accent: #1a1a1a;
+  --accent-foreground: #ededed;
+  --destructive: #ededed;
+  --border: #262626;
+  --input: #262626;
+  --ring: #525252;
+
+  --danger: #ededed;
+  --danger-soft: #262626;
+  --good: #a3a3a3;
+  --good-soft: #1a1a1a;
+  --warning: #a3a3a3;
+  --warning-soft: #1a1a1a;
+}
+
+/* System-dark fallback for no-JS visitors (the init script normally stamps
+   data-theme before paint). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    color-scheme: dark;
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --card: #111111;
+    --card-foreground: #ededed;
+    --popover: #111111;
+    --popover-foreground: #ededed;
+    --primary: #ededed;
+    --primary-foreground: #0a0a0a;
+    --secondary: #1a1a1a;
+    --secondary-foreground: #ededed;
+    --muted: #1a1a1a;
+    --muted-foreground: #a3a3a3;
+    --accent: #1a1a1a;
+    --accent-foreground: #ededed;
+    --destructive: #ededed;
+    --border: #262626;
+    --input: #262626;
+    --ring: #525252;
+
+    --danger: #ededed;
+    --danger-soft: #262626;
+    --good: #a3a3a3;
+    --good-soft: #1a1a1a;
+    --warning: #a3a3a3;
+    --warning-soft: #1a1a1a;
+  }
 }
 
 @theme inline {
-  --color-background: var(--paper);
-  --color-foreground: var(--ink);
-  --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
-  --font-sans: var(--font-source-sans), ui-sans-serif, system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-heading: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 body {
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--font-newsreader), ui-serif, Georgia, serif;
-  font-size: 1.125rem;
-  line-height: 1.6;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.55;
 }
 
+/* Light-on-dark reads thinner: compensate with a touch more leading and
+   tracking (perceptual, not stylistic). */
+:root[data-theme="dark"] body {
+  line-height: 1.62;
+  letter-spacing: 0.004em;
+}
+
+/* Type roles: headings balance their own line breaks and track tighter;
+   prose avoids orphans. Data uses tabular figures so columns never wobble. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+  letter-spacing: -0.025em;
+}
+
+/* Statement headline continuation: same size and weight, quieter plane. */
+.lede-muted {
+  color: var(--muted-foreground);
+}
+
+p {
+  text-wrap: pretty;
+}
+
+time,
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Older pages still reference .font-serif; render them in the same face so
+   the whole site stays coherent. */
+.font-serif,
+.font-display,
 .font-sans {
-  font-family: var(--font-source-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
 }
 
 code,
@@ -40,8 +196,28 @@ code,
   font-family: var(--font-geist-mono), ui-monospace, monospace;
 }
 
+/* Browser surfaces carry the theme too. */
+::selection {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+input,
+textarea {
+  caret-color: var(--foreground);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+a {
+  text-underline-offset: 3px;
+}
+
 :focus-visible {
-  outline: 2px solid var(--focus);
+  outline: 2px solid var(--foreground);
   outline-offset: 2px;
 }
 
@@ -68,9 +244,10 @@ code,
   clip: auto;
   overflow: visible;
   white-space: normal;
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--foreground);
+  color: var(--background);
   padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

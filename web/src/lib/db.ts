@@ -335,6 +335,100 @@ export async function listPublishedClaims(
   `;
 }
 
+/**
+ * Attributes disclosed as collected (data_collected + sensitive) per company,
+ * from each company's latest published, non-rolled-back revision.
+ */
+export async function mapCompanyDataTypes(): Promise<Map<string, string[]>> {
+  if (!sql) return new Map();
+  const rows = await sql<{ company_id: string; attributes: string[] }[]>`
+    select pr.company_id, array_agg(distinct pc.attribute) as attributes
+    from published_claims pc
+    join publication_revisions pr on pr.id = pc.revision_id
+    where pr.state = 'published'
+      and not exists (
+        select 1 from publication_revisions rb where rb.rolls_back_id = pr.id
+      )
+      and pr.revision_n = (
+        select max(pr2.revision_n)
+        from publication_revisions pr2
+        where pr2.company_id = pr.company_id
+          and pr2.state = 'published'
+          and not exists (
+            select 1 from publication_revisions rb2 where rb2.rolls_back_id = pr2.id
+          )
+      )
+      and pc.category in ('data_collected', 'sensitive')
+      and pc.polarity = 'disclosed'
+      and pc.attribute <> 'none_disclosed'
+    group by pr.company_id
+  `;
+  return new Map(rows.map((row) => [row.company_id, row.attributes]));
+}
+
+export type SpotlightClaim = {
+  slug: string;
+  name: string;
+  website: string;
+  attribute: string;
+  quote: string;
+};
+
+/**
+ * One vivid, real disclosure for the landing-page hero: a striking attribute
+ * from the biggest brand we have evidence for. Show, don't tell.
+ */
+export async function getSpotlightClaim(): Promise<SpotlightClaim | null> {
+  if (!sql) return null;
+  try {
+    const rows = await sql<SpotlightClaim[]>`
+      select c.slug, c.name, c.website, pc.attribute, pc.quote
+      from published_claims pc
+      join publication_revisions pr on pr.id = pc.revision_id
+      join companies c on c.id = pr.company_id
+      where pr.state = 'published'
+        and not exists (
+          select 1 from publication_revisions rb where rb.rolls_back_id = pr.id
+        )
+        and pc.polarity = 'disclosed'
+        and pc.category in ('data_collected', 'sensitive')
+        and pc.attribute in ('voice', 'biometrics', 'precise_location', 'messages', 'location', 'browsing')
+      order by
+        array_position(
+          array['voice','biometrics','precise_location','messages','location','browsing'],
+          pc.attribute
+        ),
+        array_position(
+          array['google','meta','amazon','apple','microsoft','spotify','netflix','openai'],
+          c.slug
+        ) nulls last
+      limit 1
+    `;
+    return rows[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export type CatalogStats = { companies: number; claims: number };
+
+export async function getCatalogStats(): Promise<CatalogStats | null> {
+  if (!sql) return null;
+  try {
+    const rows = await sql<{ companies: number; claims: number }[]>`
+      select
+        (select count(*) from companies)::int as companies,
+        (select count(*)
+         from published_claims pc
+         join publication_revisions pr on pr.id = pc.revision_id
+         where pr.state = 'published')::int as claims
+    `;
+    return rows[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export type LoadResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: "unconfigured" | "unavailable" };
