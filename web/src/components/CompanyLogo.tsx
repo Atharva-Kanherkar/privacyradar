@@ -38,7 +38,7 @@ export function CompanyLogo({
       <span
         aria-hidden="true"
         style={{ width: size, height: size }}
-        className={`flex shrink-0 items-center justify-center rounded-xl bg-[var(--panel)] text-sm font-semibold text-[var(--muted)] ${className}`}
+        className={`flex shrink-0 items-center justify-center rounded-md bg-muted text-sm font-semibold text-muted-foreground ${className}`}
       >
         {name.charAt(0).toUpperCase()}
       </span>
@@ -48,7 +48,7 @@ export function CompanyLogo({
   return (
     <span
       style={{ width: size, height: size }}
-      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--rule)] bg-white ${className}`}
+      className={`flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-white ${className}`}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img

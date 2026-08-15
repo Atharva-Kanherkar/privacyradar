@@ -1,98 +1,153 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-/* Light theme (default). Legacy token names are kept so older pages inherit
-   the current look without edits. */
+@custom-variant dark (&:is([data-theme="dark"] *), &:is([data-theme="dark"]));
+
+/* Monochrome system: black, greys, white. No hue anywhere.
+   Light is the default; dark is matte black. */
 :root {
   color-scheme: light;
-  --paper: #f8fafc;
-  --ink: #0f172a;
-  --ink-contrast: #ffffff;
-  --muted: #475569;
-  --rule: #e2e8f0;
-  --surface: #ffffff;
+  --background: #ffffff;
+  --foreground: #171717;
   --card: #ffffff;
-  --panel: #f1f5f9;
-  --focus: #4338ca;
-  --accent: #4338ca;
-  --accent-contrast: #ffffff;
-  --accent-soft: #eef2ff;
-  --important: #be123c;
-  --material: #be123c;
-  --danger: #b91c1c;
-  --danger-soft: #fef2f2;
-  --good: #166534;
-  --good-soft: #f0fdf4;
-  --warning: #92400e;
-  --warning-soft: #fffbeb;
-  --success: #166534;
+  --card-foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #171717;
+  --primary: #171717;
+  --primary-foreground: #fafafa;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #171717;
+  --muted: #f5f5f5;
+  --muted-foreground: #525252;
+  --accent: #f5f5f5;
+  --accent-foreground: #171717;
+  --destructive: #171717;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #a3a3a3;
+  --radius: 0.625rem;
+
+  /* Legacy aliases: older pages keep working, in monochrome. */
+  --paper: var(--background);
+  --ink: var(--foreground);
+  --ink-contrast: var(--primary-foreground);
+  --rule: var(--border);
+  --surface: var(--card);
+  --panel: var(--muted);
+  --focus: var(--foreground);
+  --important: var(--foreground);
+  --material: var(--foreground);
+  --danger: #171717;
+  --danger-soft: #e8e8e8;
+  --good: #525252;
+  --good-soft: #f5f5f5;
+  --warning: #525252;
+  --warning-soft: #f5f5f5;
+  --success: #525252;
+  --accent-soft: var(--muted);
+  --accent-contrast: var(--background);
 }
 
-/* Matte black dark theme. Near-black layered grays, hairline rules, no gloss;
-   accents lightened one step so small text keeps AA contrast. */
+/* Matte black dark theme. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --card: #111111;
+  --card-foreground: #ededed;
+  --popover: #111111;
+  --popover-foreground: #ededed;
+  --primary: #ededed;
+  --primary-foreground: #0a0a0a;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #ededed;
+  --muted: #1a1a1a;
+  --muted-foreground: #a3a3a3;
+  --accent: #1a1a1a;
+  --accent-foreground: #ededed;
+  --destructive: #ededed;
+  --border: #262626;
+  --input: #262626;
+  --ring: #525252;
+
+  --danger: #ededed;
+  --danger-soft: #262626;
+  --good: #a3a3a3;
+  --good-soft: #1a1a1a;
+  --warning: #a3a3a3;
+  --warning-soft: #1a1a1a;
+}
+
+/* System-dark fallback for no-JS visitors (the init script normally stamps
+   data-theme before paint). */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
     color-scheme: dark;
-    --paper: #0a0a0a;
-    --ink: #f2f2f2;
-    --ink-contrast: #0a0a0a;
-    --muted: #a1a1aa;
-    --rule: #262626;
-    --surface: #121212;
-    --card: #121212;
-    --panel: #1a1a1a;
-    --focus: #a5b4fc;
-    --accent: #a5b4fc;
-    --accent-contrast: #0a0a0a;
-    --accent-soft: rgba(165, 180, 252, 0.12);
-    --important: #fda4af;
-    --material: #fda4af;
-    --danger: #fca5a5;
-    --danger-soft: rgba(252, 165, 165, 0.1);
-    --good: #86efac;
-    --good-soft: rgba(134, 239, 172, 0.1);
-    --warning: #fcd34d;
-    --warning-soft: rgba(252, 211, 77, 0.1);
-    --success: #86efac;
+    --background: #0a0a0a;
+    --foreground: #ededed;
+    --card: #111111;
+    --card-foreground: #ededed;
+    --popover: #111111;
+    --popover-foreground: #ededed;
+    --primary: #ededed;
+    --primary-foreground: #0a0a0a;
+    --secondary: #1a1a1a;
+    --secondary-foreground: #ededed;
+    --muted: #1a1a1a;
+    --muted-foreground: #a3a3a3;
+    --accent: #1a1a1a;
+    --accent-foreground: #ededed;
+    --destructive: #ededed;
+    --border: #262626;
+    --input: #262626;
+    --ring: #525252;
+
+    --danger: #ededed;
+    --danger-soft: #262626;
+    --good: #a3a3a3;
+    --good-soft: #1a1a1a;
+    --warning: #a3a3a3;
+    --warning-soft: #1a1a1a;
   }
 }
 
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --paper: #0a0a0a;
-  --ink: #f2f2f2;
-  --ink-contrast: #0a0a0a;
-  --muted: #a1a1aa;
-  --rule: #262626;
-  --surface: #121212;
-  --card: #121212;
-  --panel: #1a1a1a;
-  --focus: #a5b4fc;
-  --accent: #a5b4fc;
-  --accent-contrast: #0a0a0a;
-  --accent-soft: rgba(165, 180, 252, 0.12);
-  --important: #fda4af;
-  --material: #fda4af;
-  --danger: #fca5a5;
-  --danger-soft: rgba(252, 165, 165, 0.1);
-  --good: #86efac;
-  --good-soft: rgba(134, 239, 172, 0.1);
-  --warning: #fcd34d;
-  --warning-soft: rgba(252, 211, 77, 0.1);
-  --success: #86efac;
-}
-
 @theme inline {
-  --color-background: var(--paper);
-  --color-foreground: var(--ink);
-  --font-serif: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-heading: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 body {
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.55;
 }
@@ -102,12 +157,6 @@ body {
 :root[data-theme="dark"] body {
   line-height: 1.62;
   letter-spacing: 0.004em;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) body {
-    line-height: 1.62;
-    letter-spacing: 0.004em;
-  }
 }
 
 /* Type roles: headings balance their own line breaks and track tighter;
@@ -119,46 +168,9 @@ h3 {
   letter-spacing: -0.025em;
 }
 
-/* Two-tone statement headline: the sentence starts in ink and continues in
-   a quieter tone. Emphasis by color plane, one size, one weight. */
-.lede-rest {
-  color: var(--accent);
-}
-
+/* Statement headline continuation: same size and weight, quieter plane. */
 .lede-muted {
-  color: var(--muted);
-}
-
-/* Flowing color field behind the hero. One authored moment, pinned to the
-   brief's aesthetic; dark mode dims it to an ember. */
-.aurora {
-  position: absolute;
-  inset: -12rem -20% auto;
-  height: 34rem;
-  pointer-events: none;
-  z-index: -1;
-  filter: blur(64px) saturate(1.2);
-  opacity: 0.75;
-  background:
-    radial-gradient(46% 64% at 76% 22%, #c7d2fe 0%, transparent 70%),
-    radial-gradient(38% 56% at 94% 58%, #fbcfe8 0%, transparent 72%),
-    radial-gradient(32% 48% at 60% 2%, #fde68a 0%, transparent 70%),
-    radial-gradient(28% 44% at 48% 34%, #a5f3fc 0%, transparent 75%);
-}
-
-:root[data-theme="dark"] .aurora {
-  opacity: 0.16;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .aurora {
-    opacity: 0.16;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .aurora {
-    transition: opacity 600ms ease-out;
-  }
+  color: var(--muted-foreground);
 }
 
 p {
@@ -170,16 +182,12 @@ time,
   font-variant-numeric: tabular-nums;
 }
 
-/* Older pages still reference .font-serif; render them in the same modern
-   face so the whole site stays coherent. */
+/* Older pages still reference .font-serif; render them in the same face so
+   the whole site stays coherent. */
 .font-serif,
-.font-display {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: -0.02em;
-}
-
+.font-display,
 .font-sans {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
 }
 
 code,
@@ -188,21 +196,20 @@ code,
   font-family: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-/* Browser surfaces carry the theme too: selection, caret, scrollbars,
-   focus rings, underlines. */
+/* Browser surfaces carry the theme too. */
 ::selection {
-  background: var(--accent);
-  color: var(--accent-contrast);
+  background: var(--foreground);
+  color: var(--background);
 }
 
 input,
 textarea {
-  caret-color: var(--accent);
+  caret-color: var(--foreground);
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--rule) transparent;
+  scrollbar-color: var(--border) transparent;
 }
 
 a {
@@ -210,7 +217,7 @@ a {
 }
 
 :focus-visible {
-  outline: 2px solid var(--focus);
+  outline: 2px solid var(--foreground);
   outline-offset: 2px;
 }
 
@@ -237,8 +244,8 @@ a {
   clip: auto;
   overflow: visible;
   white-space: normal;
-  background: var(--ink);
-  color: var(--ink-contrast);
+  background: var(--foreground);
+  color: var(--background);
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
 }

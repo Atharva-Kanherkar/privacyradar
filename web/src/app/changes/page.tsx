@@ -9,7 +9,7 @@ export default async function ChangesPage() {
   return (
     <main id="main" className="mx-auto max-w-5xl px-6 py-12">
       <h1 className="font-serif text-4xl tracking-tight">Changes</h1>
-      <p className="mt-3 max-w-xl text-[var(--muted)]">
+      <p className="mt-3 max-w-xl text-muted-foreground">
         Published material changes only. Review-pending and cosmetic events stay
         off this list.
       </p>
@@ -18,9 +18,9 @@ export default async function ChangesPage() {
           We could not load the change feed.
         </StatePanel>
       ) : events.data.length === 0 ? (
-        <p className="mt-8 text-[var(--muted)]">No published material changes yet.</p>
+        <p className="mt-8 text-muted-foreground">No published material changes yet.</p>
       ) : (
-        <ol className="mt-8 divide-y divide-[var(--rule)] border-y border-[var(--rule)]">
+        <ol className="mt-8 divide-y divide-border border-y border-border">
           {events.data.map((event) => (
             <li key={event.id}>
               <ChangeCard

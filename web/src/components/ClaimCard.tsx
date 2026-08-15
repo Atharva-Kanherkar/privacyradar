@@ -24,7 +24,7 @@ function toneFor(claim: PublishedClaimRow): Tone {
 }
 
 const BADGE: Record<Tone, { text: string; className: string }> = {
-  neutral: { text: "Collected", className: "bg-[var(--panel)] text-[var(--muted)]" },
+  neutral: { text: "Collected", className: "bg-muted text-muted-foreground" },
   danger: { text: "Disclosed", className: "bg-[var(--danger-soft)] text-[var(--danger)]" },
   good: { text: "Good sign", className: "bg-[var(--good-soft)] text-[var(--good)]" },
   unclear: { text: "Unclear", className: "bg-[var(--warning-soft)] text-[var(--warning)]" },
@@ -50,36 +50,36 @@ export function ClaimCard({ claim }: { claim: PublishedClaimRow }) {
       ? "bg-[var(--danger-soft)] text-[var(--danger)]"
       : tone === "good"
         ? "bg-[var(--good-soft)] text-[var(--good)]"
-        : "bg-[var(--panel)] text-[var(--muted)]";
+        : "bg-muted text-muted-foreground";
   return (
     <details
-      className="group rounded-2xl border border-[var(--rule)] bg-[var(--surface)] open:border-[var(--accent)]"
+      className="group rounded-xl border border-border bg-card open:border-foreground"
     >
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
         <span
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconTone}`}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${iconTone}`}
         >
           <DataTypeIcon attribute={claim.attribute} size={18} />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold">{meta.label}</span>
           {meta.plain ? (
-            <span className="block truncate text-xs text-[var(--muted)]">
+            <span className="block truncate text-xs text-muted-foreground">
               {meta.plain}
             </span>
           ) : null}
         </span>
         <span
-          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${BADGE[tone].className}`}
+          className={`shrink-0 rounded-md px-2 py-1 text-xs font-semibold ${BADGE[tone].className}`}
         >
           {badgeText(claim, tone)}
         </span>
       </summary>
-      <div className="border-t border-[var(--rule)] px-4 py-3">
-        <blockquote className="border-l border-[var(--accent)] pl-3 text-sm italic text-[var(--muted)]">
+      <div className="border-t border-border px-4 py-3">
+        <blockquote className="border-l border-foreground pl-3 text-sm italic text-muted-foreground">
           &ldquo;{claim.quote}&rdquo;
         </blockquote>
-        <p className="mt-2 font-mono text-[0.65rem] text-[var(--muted)]">
+        <p className="mt-2 font-mono text-[0.65rem] text-muted-foreground">
           snapshot {claim.snapshot_id} · revision {claim.revision_n}
         </p>
       </div>

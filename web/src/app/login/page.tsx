@@ -16,7 +16,7 @@ export default async function LoginPage({
       <h1 className="font-display text-3xl font-semibold tracking-tight">
         Welcome back
       </h1>
-      <p className="mt-3 text-[var(--muted)]">
+      <p className="mt-3 text-muted-foreground">
         Sign in to watch companies and get alerts when their privacy policies
         change. Browsing never requires an account.
       </p>

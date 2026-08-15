@@ -1,65 +1,69 @@
-# PrivacyRadar design tokens
+# PrivacyRadar design system
 
-Modern consumer product look (2026 revamp): clean light surfaces, rounded cards,
-one accent color, and plain-language data-category cards with icons. Still no
-mascots, animated counters, or a universal privacy score. Evidence rigor is
-unchanged: every published claim renders with its verbatim quote.
+Monochrome, shadcn/ui-based (2026). Black, greys, white. No hue anywhere in
+the interface. Semantic states are expressed by fill weight and words, never
+color. Still no mascots, animated counters, or a universal privacy score.
+Evidence rigor is unchanged: every published claim renders with its verbatim
+quote. Real company logos come from each site's own favicon (`CompanyLogo`,
+Google s2 service, initials fallback); the white logo tile is the one
+deliberate non-token surface, kept for mark legibility on both themes.
 
 ## Color
 
-Two themes, both token-driven. Light is the default; dark is a matte black
-system (near-black layered grays, hairline rules, no gloss). The stored choice
-is applied pre-paint by an inline script; with no stored choice the system
-preference wins via `prefers-color-scheme`. Toggle in the header
-(`ThemeToggle`, `useSyncExternalStore`). `color-scheme` is set per theme so
-form controls and scrollbars follow.
+Tokens are shadcn/ui semantic names (`--background`, `--foreground`,
+`--primary`, `--secondary`, `--muted`, `--muted-foreground`, `--border`,
+`--ring`, ...) defined in `web/src/app/globals.css`, all neutral:
 
-Light (`:root`):
+- Light: white background, `#171717` foreground, `#f5f5f5` muted surfaces,
+  `#e5e5e5` borders, `#525252` muted text.
+- Dark (matte black): `#0a0a0a` background, `#111111` cards, `#1a1a1a`
+  panels, `#262626` borders, `#ededed` foreground, `#a3a3a3` muted text.
+  Primary inverts (light button on black), like Vercel.
 
-| Token | Value | Use |
-|---|---|---|
-| `--paper` | `#f8fafc` | Page background |
-| `--ink` / `--ink-contrast` | `#0f172a` / `#ffffff` | Body text / text on ink buttons |
-| `--muted` | `#475569` | Secondary text |
-| `--rule` | `#e2e8f0` | Borders |
-| `--surface` | `#ffffff` | Cards |
-| `--panel` | `#f1f5f9` | Inset panels, chips |
-| `--accent` / `--accent-contrast` | `#4338ca` / `#ffffff` | Brand accent / text on accent |
-| `--accent-soft` | `#eef2ff` | Accent-tinted backgrounds |
-| `--danger` / `--danger-soft` | `#b91c1c` / `#fef2f2` | Sensitive data, selling data, AI training |
-| `--good` / `--good-soft` | `#166534` / `#f0fdf4` | User controls, explicit denials |
-| `--warning` / `--warning-soft` | `#92400e` / `#fffbeb` | Unclear / check delayed |
-| `--important` | `#be123c` | Important material change (also labeled in text) |
+Legacy token names (`--paper`, `--ink`, `--rule`, `--surface`, `--panel`,
+`--danger`, `--good`, `--warning`, ...) are aliases onto the neutral scale so
+older pages inherit the system; their values are greyscale by definition. Do
+not introduce a colored value anywhere.
 
-Dark (`[data-theme="dark"]`, matte black): paper `#0a0a0a`, surface `#121212`,
-panel `#1a1a1a`, rule `#262626`, ink `#f2f2f2` (contrast `#0a0a0a`), muted
-`#a1a1aa`, accent `#a5b4fc` (contrast `#0a0a0a`), status hues lightened one
-step (`#fca5a5` / `#86efac` / `#fcd34d` / `#fda4af`) with translucent softs.
-Never hardcode `text-white` or `bg-white` in components; use
-`--ink-contrast` / `--accent-contrast` / `--surface`. The one deliberate
-exception is the white logo tile in `CompanyLogo`, kept for mark legibility on
-both themes.
+The stored theme choice is stamped as `data-theme` before first paint by an
+inline script (falling back to the system preference); the header toggle
+(`ThemeToggle`, `useSyncExternalStore`) flips it. `color-scheme` follows the
+theme. shadcn's `dark:` variant is bound to `[data-theme="dark"]`.
 
-Do not rely on color alone. Materiality uses the words `Important`, `Moderate`,
-`Minor`; claim badges use words (`Collected`, `Says no`, `Good sign`, `Unclear`).
+## Components
+
+shadcn/ui primitives (`src/components/ui/`): Button, Badge, Input, Textarea,
+Card, wired through `cn()` from `src/lib/utils.ts`. Prominent controls use
+Button (`default` = solid primary, `outline` = hairline); pass `min-h-11`
+so tap targets stay at 44px. No pill buttons: geometry is `rounded-md` for
+controls and chips, `rounded-lg`/`rounded-xl` for inputs and cards.
+
+Product components: `SearchForm`, `FreshnessLabel`, `EvidenceQuote`,
+`DisclosureRow`, `ChangeCard`, `StatePanel`, `SiteHeader`, `AuthNav`,
+`WatchButton`, `CompanyCard`, `CompanyLogo`, `DataTypeChip`, `DataTypeIcon`,
+`ClaimCard`, `ThemeToggle`, `ChatAssistant` (slide-over drawer; streaming,
+evidence-grounded, on when `OPENAI_API_KEY` is set).
 
 ## Type
 
-- Sans: Inter (variable, self-hosted via next/font) — everything.
+- Sans: Geist (variable, self-hosted via next/font) — everything.
 - Mono: Geist Mono — timestamps, hashes, snapshot ids.
 - Headings: `text-wrap: balance`, tracking -0.025em. Prose: `text-wrap: pretty`.
-- Display sizes are fluid via `clamp()` (hero: `clamp(2.25rem, 1.4rem+2.8vw, 3.4rem)`).
-- Data and stats use tabular figures (`time` and `.tabular` get `font-variant-numeric: tabular-nums`).
-- Dark mode compensates light-on-dark rendering: body line-height 1.62 (vs 1.55) and +0.004em tracking.
-- Browser surfaces are themed: `::selection`, caret color, thin scrollbars, underline offset.
-- Legacy `.font-serif` classes render as Inter so old pages inherit the new look.
-- Elevation is declared once per element: border or shadow, not both (overlays like the chat drawer may use shadow). Quote rails are 1px.
-- No eyebrow/kicker labels above headings; headings carry their own weight.
+- Statement headline: fluid `clamp()` display size; the sentence continues in
+  `--muted-foreground` (`.lede-muted`), same size and weight. Section titles
+  may use the same two-tone lede pattern. No eyebrow/kicker labels.
+- Data and stats use tabular figures (`time`, `.tabular`).
+- Dark mode compensates light-on-dark rendering: body line-height 1.62
+  (vs 1.55) and +0.004em tracking.
+- Browser surfaces are themed: `::selection` (inverted mono), caret, thin
+  scrollbars, underline offset, focus ring in `--foreground`.
 
-## Space and targets
+## Space and geometry
 
-4px base. Rounded corners: cards `rounded-2xl`, controls `rounded-lg`+.
-Minimum tap target 44px. Visible `:focus-visible` ring 2px `--accent`.
+4px base. Elevation declared once per element: hairline border for in-flow
+cards (no resting shadows); shadows only on overlays (chat drawer, floating
+trigger). Quote rails are 1px. Minimum tap target 44px. Visible
+`:focus-visible` ring 2px.
 
 ## Motion
 
@@ -68,23 +72,8 @@ pages (server-rendered). Card hover lift is subtle and non-essential.
 
 ## Copy
 
-Plain language a non-lawyer understands. Marketing surfaces (home hero, section
-titles) may say "takes"; structured evidence blocks keep "discloses", "we
-found", "we have not found evidence", "last checked". Policy quotes stay
-visually distinct (left rail). No em or en dashes in copy.
-
-## Data-category cards
-
-`ClaimCard` renders one published claim as icon + plain label + badge, with the
-verbatim quote one tap away (`details`). Icons come from lucide-react via
-`DataTypeIcon`; labels and one-liners live in `src/lib/data-categories.ts`.
-Sensitive categories (biometrics, health, children, precise location), data
-sale, and AI training render in danger tones; user controls and explicit
-denials render in good tones.
-
-## Components
-
-`SearchForm`, `FreshnessLabel`, `EvidenceQuote`, `DisclosureRow`, `ChangeCard`,
-`StatePanel`, `SiteHeader`, `AuthNav`, `WatchButton`, `CompanyCard`,
-`DataTypeChip`, `DataTypeIcon`, `ClaimCard`, `ChatAssistant` (streaming,
-evidence-grounded, on when `OPENAI_API_KEY` is set).
+Plain language a non-lawyer understands. Marketing surfaces may say "takes";
+structured evidence blocks keep "discloses", "we found", "we have not found
+evidence", "last checked". Policy quotes stay visually distinct (left rail).
+Materiality and claim badges use words (`Important`, `Collected`, `Says no`,
+`Good sign`, `Unclear`), never color alone. No em or en dashes in copy.

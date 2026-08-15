@@ -27,7 +27,11 @@ test.describe("public smoke", () => {
     await expect(page.getByRole("link", { name: "Companies" }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: "How it works" })).toBeVisible();
     await expect(page.getByText("UNPUBLISHED_FIXTURE_HEADLINE")).toHaveCount(0);
+
+    expect((await page.goto("/changes"))?.status()).toBe(200);
     await expect(page.getByText("PUBLISHED_FIXTURE_HEADLINE")).toBeVisible();
+    await expect(page.getByText("UNPUBLISHED_FIXTURE_HEADLINE")).toHaveCount(0);
+    await page.goto("/");
 
     await page.getByLabel("Search a company").fill("signal");
     await page.getByRole("button", { name: "Search" }).click();

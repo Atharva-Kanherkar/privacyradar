@@ -9,7 +9,7 @@ const MATERIALITY: Record<string, { label: string; tone: string }> = {
     label: "Moderate",
     tone: "bg-[var(--warning-soft)] text-[var(--warning)]",
   },
-  cosmetic: { label: "Minor", tone: "bg-[var(--panel)] text-[var(--muted)]" },
+  cosmetic: { label: "Minor", tone: "bg-muted text-muted-foreground" },
 };
 
 export function ChangeCard({
@@ -38,19 +38,19 @@ export function ChangeCard({
   });
   const badge = MATERIALITY[materiality] ?? {
     label: materiality,
-    tone: "bg-[var(--panel)] text-[var(--muted)]",
+    tone: "bg-muted text-muted-foreground",
   };
   return (
-    <article className="rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-5">
-      <p className="flex flex-wrap items-center gap-2 text-sm text-[var(--muted)]">
+    <article className="rounded-xl border border-border bg-card p-5">
+      <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <Link
           href={`/companies/${companySlug}`}
-          className="font-medium text-[var(--ink)] hover:underline"
+          className="font-medium text-foreground hover:underline"
         >
           {companyName}
         </Link>
         <span
-          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${badge.tone}`}
+          className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${badge.tone}`}
         >
           {badge.label}
         </span>
@@ -64,7 +64,7 @@ export function ChangeCard({
           {headline}
         </Link>
       </h2>
-      <p className="mt-1.5 max-w-2xl text-sm text-[var(--muted)]">{summary}</p>
+      <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">{summary}</p>
     </article>
   );
 }

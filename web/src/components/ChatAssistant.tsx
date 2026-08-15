@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { Radar, SendHorizontal, Sparkles, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -132,14 +133,14 @@ export function ChatAssistant({
 
   return (
     <>
-      <button
+      <Button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-40 inline-flex min-h-12 items-center gap-2 rounded-full bg-[var(--accent)] px-5 text-sm font-medium text-[var(--accent-contrast)] shadow-lg transition-transform hover:scale-[1.03]"
+        className="fixed bottom-6 right-6 z-40 min-h-12 gap-2 px-5 shadow-lg"
       >
         <Sparkles size={16} aria-hidden="true" />
         Ask about this policy
-      </button>
+      </Button>
 
       {open ? (
         <div className="fixed inset-0 z-50 flex justify-end">
@@ -153,17 +154,17 @@ export function ChatAssistant({
             role="dialog"
             aria-modal="true"
             aria-label={`Chat about ${companyName}'s privacy policy`}
-            className="relative flex h-full w-full max-w-md flex-col border-l border-[var(--rule)] bg-[var(--surface)] shadow-2xl"
+            className="relative flex h-full w-full max-w-md flex-col border-l border-border bg-card shadow-2xl"
           >
-            <div className="flex items-center gap-2 border-b border-[var(--rule)] px-5 py-4">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
+            <div className="flex items-center gap-2 border-b border-border px-5 py-4">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-foreground">
                 <Sparkles size={16} aria-hidden="true" />
               </span>
               <div className="min-w-0 flex-1">
                 <h2 className="truncate text-base font-semibold">
                   Ask about {companyName}&rsquo;s privacy policy
                 </h2>
-                <p className="text-xs text-[var(--muted)]">
+                <p className="text-xs text-muted-foreground">
                   Answers come only from the captured policy evidence. Not legal advice.
                 </p>
               </div>
@@ -171,7 +172,7 @@ export function ChatAssistant({
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--panel)] hover:text-[var(--ink)]"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 <X size={18} aria-hidden="true" />
               </button>
@@ -189,7 +190,7 @@ export function ChatAssistant({
                       key={suggestion}
                       type="button"
                       onClick={() => void send(suggestion)}
-                      className="min-h-10 rounded-full border border-[var(--rule)] bg-[var(--surface)] px-4 text-left text-sm text-[var(--ink)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                      className="min-h-10 rounded-md border border-border bg-card px-4 text-left text-sm text-foreground transition-colors hover:border-foreground hover:text-foreground"
                     >
                       {suggestion}
                     </button>
@@ -204,16 +205,16 @@ export function ChatAssistant({
                     {message.role === "assistant" ? (
                       <span
                         aria-hidden="true"
-                        className="mr-2 mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]"
+                        className="mr-2 mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-foreground"
                       >
                         <Radar size={14} />
                       </span>
                     ) : null}
                     <div
-                      className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-[0.95rem] leading-relaxed ${
+                      className={`max-w-[85%] whitespace-pre-wrap rounded-xl px-4 py-2.5 text-[0.95rem] leading-relaxed ${
                         message.role === "user"
-                          ? "bg-[var(--ink)] text-[var(--ink-contrast)]"
-                          : "bg-[var(--panel)] text-[var(--ink)]"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-foreground"
                       }`}
                     >
                       {message.content ||
@@ -239,7 +240,7 @@ export function ChatAssistant({
 
             <form
               onSubmit={onSubmit}
-              className="flex items-end gap-2 border-t border-[var(--rule)] px-4 py-3"
+              className="flex items-end gap-2 border-t border-border px-4 py-3"
             >
               <label htmlFor="assistant-input" className="sr-only">
                 Question about this company
@@ -253,16 +254,16 @@ export function ChatAssistant({
                 rows={1}
                 maxLength={MAX_INPUT}
                 placeholder={`Message PrivacyRadar about ${companyName}…`}
-                className="max-h-40 min-h-11 w-full resize-y rounded-xl border border-[var(--rule)] bg-[var(--surface)] px-4 py-2.5 text-[0.95rem] outline-none focus:border-[var(--accent)]"
+                className="max-h-40 min-h-11 w-full resize-y rounded-lg border border-border bg-card px-4 py-2.5 text-[0.95rem] outline-none focus:border-foreground"
               />
-              <button
+              <Button
                 type="submit"
                 disabled={streaming || !input.trim()}
                 aria-label="Send"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--accent-contrast)] transition-opacity disabled:opacity-40"
+                className="h-11 w-11 shrink-0"
               >
                 <SendHorizontal size={18} aria-hidden="true" />
-              </button>
+              </Button>
             </form>
           </aside>
         </div>

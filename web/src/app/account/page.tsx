@@ -36,7 +36,7 @@ export default async function AccountPage() {
           inferred from your IP address.
         </p>
       ) : (
-        <p className="mt-3 text-[var(--muted)]">
+        <p className="mt-3 text-muted-foreground">
           Region is the policy region you want us to emphasize. It is not legal
           advice and is not inferred from your IP address.
         </p>
@@ -49,7 +49,7 @@ export default async function AccountPage() {
           id="region"
           name="region"
           defaultValue={region}
-          className="mt-1 min-h-11 w-full border border-[var(--rule)] bg-[var(--surface)] px-3"
+          className="mt-1 min-h-11 w-full border border-border bg-card px-3"
         >
           {REGIONS.map((value) => (
             <option key={value} value={value}>
@@ -59,7 +59,7 @@ export default async function AccountPage() {
         </select>
         <button
           type="submit"
-          className="mt-4 min-h-11 border border-[var(--ink)] px-4 font-sans text-sm"
+          className="mt-4 min-h-11 border border-foreground px-4 font-sans text-sm"
         >
           Save region
         </button>
@@ -67,7 +67,7 @@ export default async function AccountPage() {
       <form action="/account/sign-out" method="post" className="mt-8">
         <button
           type="submit"
-          className="min-h-11 border border-[var(--rule)] px-4 font-sans text-sm"
+          className="min-h-11 border border-border px-4 font-sans text-sm"
         >
           Sign out
         </button>
@@ -82,7 +82,7 @@ export default async function AccountPage() {
           Download account export (JSON)
         </a>
       </p>
-      <p className="mt-6 text-[var(--muted)]">
+      <p className="mt-6 text-muted-foreground">
         Passkeys are optional later. A magic link is enough to sign in.
       </p>
       <form action="/account/delete" method="post" className="mt-10">
@@ -92,7 +92,7 @@ export default async function AccountPage() {
         <input
           id="confirm"
           name="confirm"
-          className="mt-1 min-h-11 w-full border border-[var(--rule)] bg-[var(--surface)] px-3"
+          className="mt-1 min-h-11 w-full border border-border bg-card px-3"
         />
         <button
           type="submit"

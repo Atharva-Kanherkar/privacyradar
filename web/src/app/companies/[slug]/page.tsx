@@ -9,6 +9,7 @@ import { DisclosureRow } from "@/components/DisclosureRow";
 import { FreshnessLabel } from "@/components/FreshnessLabel";
 import { StatePanel } from "@/components/StatePanel";
 import { WatchButton } from "@/components/WatchButton";
+import { Button } from "@/components/ui/button";
 import { assistantEnabled } from "@/lib/assistant";
 import { loadCompany, type PublishedClaimRow } from "@/lib/db";
 import { getSessionFromCookies } from "@/lib/session";
@@ -100,7 +101,7 @@ export default async function CompanyPage({
 
   return (
     <main id="main" className="mx-auto max-w-6xl px-6 py-12">
-      <p className="text-sm text-[var(--muted)]">
+      <p className="text-sm text-muted-foreground">
         <Link href="/companies" className="hover:underline">
           Companies
         </Link>
@@ -117,7 +118,7 @@ export default async function CompanyPage({
           />
           <div>
             <h1 className="text-4xl font-semibold tracking-tight">{company.name}</h1>
-            <p className="mt-2 text-sm text-[var(--muted)]">
+            <p className="mt-2 text-sm text-muted-foreground">
             {company.privacy_url ? (
               <a href={company.privacy_url} className="underline" rel="noreferrer">
                 Current privacy policy
@@ -141,12 +142,9 @@ export default async function CompanyPage({
             signedIn={Boolean(session?.user)}
             watching={watching}
           />
-          <Link
-            href={`/compare?companies=${company.slug}`}
-            className="inline-flex min-h-11 items-center rounded-full border border-[var(--rule)] bg-[var(--surface)] px-5 text-sm font-medium hover:border-[var(--accent)]"
-          >
-            Compare
-          </Link>
+          <Button asChild variant="outline" className="min-h-11 px-5">
+            <Link href={`/compare?companies=${company.slug}`}>Compare</Link>
+          </Button>
         </div>
       </div>
 
@@ -158,7 +156,7 @@ export default async function CompanyPage({
           </span>
         </h2>
         {collected.length === 0 ? (
-          <p className="mt-4 max-w-xl text-[var(--muted)]">
+          <p className="mt-4 max-w-xl text-muted-foreground">
             {company.current_snapshot_id
               ? "We have not found published evidence yet. Unpublished model output is not shown."
               : "Not yet checked. A missing or failed fetch is not an empty policy."}
@@ -216,7 +214,7 @@ export default async function CompanyPage({
           What changed.
         </h2>
         {events.length === 0 ? (
-          <p className="mt-3 text-[var(--muted)]">No published changes yet.</p>
+          <p className="mt-3 text-muted-foreground">No published changes yet.</p>
         ) : (
           <ol className="mt-5 space-y-4">
             {events.map((event) => (
@@ -238,7 +236,7 @@ export default async function CompanyPage({
       </section>
 
       {claims.length > 0 ? (
-        <details className="mt-12 rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-5">
+        <details className="mt-12 rounded-xl border border-border bg-card p-5">
           <summary className="min-h-11 cursor-pointer text-sm font-medium">
             Full evidence record ({claims.length} published claims)
           </summary>
@@ -269,9 +267,9 @@ export default async function CompanyPage({
       {chatOn ? (
         <ChatAssistant slug={company.slug} companyName={company.name} />
       ) : (
-        <section className="mt-12 rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-5">
+        <section className="mt-12 rounded-xl border border-border bg-card p-5">
           <h2 className="text-base font-semibold">Ask about this policy</h2>
-          <p className="mt-2 text-sm text-[var(--muted)]">
+          <p className="mt-2 text-sm text-muted-foreground">
             The cited assistant is off. Read the published disclosures above.
             This is not legal advice.
           </p>

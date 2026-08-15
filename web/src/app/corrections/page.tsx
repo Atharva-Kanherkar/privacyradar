@@ -9,7 +9,7 @@ export default async function CorrectionsPage() {
   return (
     <main id="main" className="mx-auto max-w-5xl px-6 py-12">
       <h1 className="font-serif text-4xl tracking-tight">Corrections</h1>
-      <p className="mt-3 max-w-xl text-[var(--muted)]">
+      <p className="mt-3 max-w-xl text-muted-foreground">
         Public history of corrected or declined reports. Prior publication
         revisions are not deleted.
       </p>
@@ -18,12 +18,12 @@ export default async function CorrectionsPage() {
           We could not load correction history.
         </StatePanel>
       ) : result.data.length === 0 ? (
-        <p className="mt-8 text-[var(--muted)]">No public corrections yet.</p>
+        <p className="mt-8 text-muted-foreground">No public corrections yet.</p>
       ) : (
-        <ol className="mt-8 divide-y divide-[var(--rule)] border-y border-[var(--rule)]">
+        <ol className="mt-8 divide-y divide-border border-y border-border">
           {result.data.map((row) => (
             <li key={row.id} className="py-5">
-              <p className="font-sans text-sm text-[var(--muted)]">
+              <p className="font-sans text-sm text-muted-foreground">
                 <Link href={`/companies/${row.company_slug}`} className="hover:underline">
                   {row.company_name}
                 </Link>

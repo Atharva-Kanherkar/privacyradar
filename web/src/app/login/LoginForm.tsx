@@ -74,14 +74,14 @@ export function LoginForm({ next }: { next: string }) {
   }
 
   const inputClass =
-    "mt-1 min-h-11 w-full rounded-lg border border-[var(--rule)] bg-[var(--surface)] px-3 text-base outline-none focus:border-[var(--accent)]";
+    "mt-1 min-h-11 w-full rounded-lg border border-border bg-card px-3 text-base outline-none focus:border-foreground";
 
   return (
     <>
       <div
         role="tablist"
         aria-label="Sign in or create account"
-        className="mt-8 grid grid-cols-2 rounded-lg border border-[var(--rule)] bg-[var(--surface)] p-1 font-sans text-sm"
+        className="mt-8 grid grid-cols-2 rounded-lg border border-border bg-card p-1 font-sans text-sm"
       >
         <button
           type="button"
@@ -93,8 +93,8 @@ export function LoginForm({ next }: { next: string }) {
           }}
           className={`min-h-10 rounded-md px-3 ${
             mode === "sign-in"
-              ? "bg-[var(--ink)] text-[var(--ink-contrast)]"
-              : "text-[var(--muted)]"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground"
           }`}
         >
           Sign in
@@ -109,8 +109,8 @@ export function LoginForm({ next }: { next: string }) {
           }}
           className={`min-h-10 rounded-md px-3 ${
             mode === "sign-up"
-              ? "bg-[var(--ink)] text-[var(--ink-contrast)]"
-              : "text-[var(--muted)]"
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground"
           }`}
         >
           Create account
@@ -160,7 +160,7 @@ export function LoginForm({ next }: { next: string }) {
             className={inputClass}
           />
           {mode === "sign-up" ? (
-            <p className="mt-1 font-sans text-xs text-[var(--muted)]">
+            <p className="mt-1 font-sans text-xs text-muted-foreground">
               At least 8 characters.
             </p>
           ) : null}
@@ -173,7 +173,7 @@ export function LoginForm({ next }: { next: string }) {
         <button
           type="submit"
           disabled={pending}
-          className="min-h-11 w-full rounded-lg bg-[var(--ink)] px-4 font-sans text-sm font-medium text-[var(--ink-contrast)] disabled:opacity-60"
+          className="min-h-11 w-full rounded-lg bg-primary px-4 font-sans text-sm font-medium text-primary-foreground disabled:opacity-60"
         >
           {pending
             ? "One moment…"
@@ -183,8 +183,8 @@ export function LoginForm({ next }: { next: string }) {
         </button>
       </form>
 
-      <details className="mt-8 border-t border-[var(--rule)] pt-4">
-        <summary className="cursor-pointer font-sans text-sm text-[var(--muted)]">
+      <details className="mt-8 border-t border-border pt-4">
+        <summary className="cursor-pointer font-sans text-sm text-muted-foreground">
           Prefer a single-use email link?
         </summary>
         <form onSubmit={onMagicSubmit} className="mt-4 space-y-3">
@@ -201,7 +201,7 @@ export function LoginForm({ next }: { next: string }) {
           />
           <button
             type="submit"
-            className="min-h-11 rounded-lg border border-[var(--ink)] px-4 font-sans text-sm"
+            className="min-h-11 rounded-lg border border-foreground px-4 font-sans text-sm"
           >
             Email me a link
           </button>

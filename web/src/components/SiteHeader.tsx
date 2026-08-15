@@ -12,13 +12,13 @@ const LINKS = [
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--rule)] bg-[var(--surface)]">
+    <header className="sticky top-0 z-40 border-b border-border bg-card">
       <a className="skip-link" href="#main">
         Skip to content
       </a>
       <div className="mx-auto flex max-w-6xl min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-3">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--accent-contrast)]">
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Radar size={20} aria-hidden="true" />
           </span>
           <span className="text-lg font-semibold tracking-tight">
@@ -30,7 +30,7 @@ export function SiteHeader() {
             <Link
               key={link.href}
               href={link.href}
-              className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-[var(--muted)] transition-colors hover:bg-[var(--panel)] hover:text-[var(--ink)]"
+              className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               {link.label}
             </Link>

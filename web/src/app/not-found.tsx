@@ -4,7 +4,7 @@ export default function NotFound() {
   return (
     <main id="main" className="mx-auto max-w-5xl px-6 py-12">
       <h1 className="font-serif text-4xl tracking-tight">Not found</h1>
-      <p className="mt-4 text-[var(--muted)]">
+      <p className="mt-4 text-muted-foreground">
         That page is not in the public catalog. It may be unpublished, or the
         address may be wrong.
       </p>

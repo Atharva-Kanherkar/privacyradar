@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Inter } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
   display: "swap",
 });
@@ -20,13 +20,13 @@ const baseUrl = process.env.PUBLIC_BASE_URL ?? "https://privacyradar.local";
 
 export const viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
   ],
 };
 
-// Applies a stored theme choice before first paint so there is no flash.
-const themeInit = `try{var t=localStorage.getItem("theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}`;
+// Stamps the theme before first paint: stored choice, else system preference.
+const themeInit = `try{var t=localStorage.getItem("theme");if(t!=="dark"&&t!=="light"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.setAttribute("data-theme",t)}catch(e){}`;
 
 export const metadata: Metadata = {
   title: {
@@ -43,14 +43,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${mono.variable} h-full antialiased`}
+      className={`${geist.variable} ${mono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-[var(--paper)] text-[var(--ink)]">
+      <body className="flex min-h-full flex-col bg-background text-foreground">
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
         <SiteHeader />
         <div className="flex-1">{children}</div>
-        <footer className="border-t border-[var(--rule)] bg-[var(--surface)]">
-          <p className="mx-auto max-w-6xl px-6 py-5 text-xs text-[var(--muted)]">
+        <footer className="border-t border-border bg-card">
+          <p className="mx-auto max-w-6xl px-6 py-5 text-xs text-muted-foreground">
             Not legal advice. We report what companies disclose in captured
             policies, with quotes. A missing fetch is not an empty policy.
           </p>

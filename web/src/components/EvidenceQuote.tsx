@@ -11,8 +11,8 @@ export function EvidenceQuote({
 }) {
   return (
     <figure className="mt-3 border-l border-[var(--important)] pl-3">
-      <blockquote className="text-sm italic text-[var(--muted)]">“{quote}”</blockquote>
-      <figcaption className="mt-2 font-mono text-xs text-[var(--muted)]">
+      <blockquote className="text-sm italic text-muted-foreground">“{quote}”</blockquote>
+      <figcaption className="mt-2 font-mono text-xs text-muted-foreground">
         snapshot {snapshotId} · revision {revisionN}
         {region ? ` · source region ${region}` : " · source region not labeled"}
       </figcaption>

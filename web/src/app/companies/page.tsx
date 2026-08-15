@@ -21,7 +21,7 @@ export default async function CompaniesPage({
   return (
     <main id="main" className="mx-auto max-w-6xl px-6 py-12">
       <h1 className="text-4xl font-semibold tracking-tight">Catalog</h1>
-      <p className="mt-3 max-w-xl text-[var(--muted)]">
+      <p className="mt-3 max-w-xl text-muted-foreground">
         Hand-picked services. Each card shows what the company&rsquo;s own
         privacy policy discloses it collects about you.{" "}
         <Link href="/companies/request" className="underline">
@@ -35,7 +35,7 @@ export default async function CompaniesPage({
           We could not load companies. This is not an empty catalog.
         </StatePanel>
       ) : result.data.length === 0 ? (
-        <p className="mt-8 text-[var(--muted)]">
+        <p className="mt-8 text-muted-foreground">
           We have not found a matching company. Try another name, or browse from
           the home page.
         </p>

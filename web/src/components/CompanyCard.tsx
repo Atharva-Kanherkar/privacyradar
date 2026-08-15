@@ -35,20 +35,20 @@ export function CompanyCard({
   return (
     <Link
       href={`/companies/${company.slug}`}
-      className="group flex flex-col gap-3 rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-5 transition-all hover:-translate-y-0.5 hover:border-[var(--accent)]"
+      className="group flex flex-col gap-3 rounded-xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-foreground"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3">
           <CompanyLogo name={company.name} website={company.website} size={40} />
           <div>
             <h3 className="text-lg font-semibold tracking-tight">{company.name}</h3>
-            <p className="text-xs text-[var(--muted)]">{company.category}</p>
+            <p className="text-xs text-muted-foreground">{company.category}</p>
           </div>
         </div>
         <ArrowUpRight
           size={18}
           aria-hidden="true"
-          className="shrink-0 text-[var(--muted)] transition-colors group-hover:text-[var(--accent)]"
+          className="shrink-0 text-muted-foreground transition-colors group-hover:text-foreground"
         />
       </div>
       {shown.length > 0 ? (
@@ -57,17 +57,17 @@ export function CompanyCard({
             <DataTypeChip key={attribute} attribute={attribute} />
           ))}
           {extra > 0 ? (
-            <span className="inline-flex items-center rounded-full bg-[var(--panel)] px-2.5 py-1 text-xs font-medium text-[var(--muted)]">
+            <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
               +{extra} more
             </span>
           ) : null}
         </div>
       ) : dataTypes === null ? (
-        <p className="text-xs text-[var(--muted)]">
+        <p className="text-xs text-muted-foreground">
           Data summary unavailable right now.
         </p>
       ) : (
-        <p className="text-xs text-[var(--muted)]">
+        <p className="text-xs text-muted-foreground">
           Policy captured. Evidence review in progress.
         </p>
       )}
