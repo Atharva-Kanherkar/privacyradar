@@ -100,7 +100,7 @@ const Stage = ({
 
 const RapidWords = () => {
   const frame = useCurrentFrame();
-  const words = ["your voice.", "your location.", "your messages.", "your face."];
+  const words = ["they take ur voice.", "ur location.", "ur DMs.", "ur face."];
   const beat = 27;
   const index = Math.min(Math.floor(frame / beat), words.length - 1);
   const local = frame - index * beat;
@@ -228,7 +228,7 @@ const Receipt = () => {
             opacity: captionIn,
           }}
         >
-          Google&apos;s actual privacy policy. Word for word.
+          google&apos;s ACTUAL privacy policy. word for word.
         </div>
         <div
           style={{
@@ -255,11 +255,11 @@ const Receipt = () => {
 };
 
 const CHIPS = [
-  { company: "Stripe", takes: "your biometrics" },
-  { company: "Amazon", takes: "children's data" },
-  { company: "Meta", takes: "a profile of you" },
-  { company: "Spotify", takes: "your location" },
-  { company: "Netflix", takes: "your messages" },
+  { company: "Stripe", takes: "ur biometrics" },
+  { company: "Amazon", takes: "kids' data" },
+  { company: "Meta", takes: "a whole profile of u" },
+  { company: "Spotify", takes: "ur location" },
+  { company: "Netflix", takes: "ur messages" },
 ];
 
 const ChipStorm = () => {
@@ -278,7 +278,7 @@ const ChipStorm = () => {
           opacity: spring({ frame, fps, config: { damping: 200 } }),
         }}
       >
-        And it&apos;s not just Google.
+        and it&apos;s not just google.
       </div>
       <div
         style={{
@@ -331,16 +331,16 @@ const ChipStorm = () => {
           opacity: spring({ frame: frame - 80, fps, config: { damping: 200 } }),
         }}
       >
-        All from their own policies
+        diabolical. all from their own policies
       </div>
     </Stage>
   );
 };
 
 const PITCH = [
-  "Every claim carries the exact quote.",
-  "Alerts the moment a policy changes.",
-  "Ask anything. Answers cite the receipts.",
+  "every claim = the exact quote.",
+  "alerts the second a policy changes.",
+  "thinking they'll tell u themselves? delulu.",
 ];
 
 const Pitch = () => {
@@ -348,7 +348,7 @@ const Pitch = () => {
   const { fps } = useVideoConfig();
   return (
     <Stage drift={useDrift(84, 0.03)}>
-      <Rise size={86}>PrivacyRadar reads the fine print.</Rise>
+      <Rise size={86}>PrivacyRadar reads the fine print. standing on business.</Rise>
       <div style={{ display: "flex", flexDirection: "column", gap: 28, marginTop: 16 }}>
         {PITCH.map((line, index) => {
           const s = spring({
@@ -421,7 +421,7 @@ const Outro = () => {
           opacity: spring({ frame: frame - 16, fps, config: { damping: 200 } }),
         }}
       >
-        See what they take from you.
+        see what they take from you.
       </div>
       <div
         style={{
@@ -443,18 +443,18 @@ const Outro = () => {
 const Hook = () => (
   <Stage drift={useDrift(60)}>
     <Rise size={116}>
-      Your apps know
+      ur apps are lowkey
       <br />
-      too much about you.
+      ur opps.
     </Rise>
   </Stage>
 );
 
 const Tease = () => (
   <Stage drift={useDrift(60)}>
-    <Rise size={100}>Sounds exaggerated?</Rise>
+    <Rise size={100}>sounds like cap?</Rise>
     <Rise delay={20} size={100}>
-      We have the receipts.
+      we caught them in 4K.
     </Rise>
   </Stage>
 );
