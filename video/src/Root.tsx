@@ -5,7 +5,7 @@ export const Root = () => (
   <Composition
     id="Launch"
     component={LaunchVideo}
-    durationInFrames={750}
+    durationInFrames={690}
     fps={30}
     width={1080}
     height={1920}
