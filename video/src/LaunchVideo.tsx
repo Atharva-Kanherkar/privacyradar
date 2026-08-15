@@ -2,23 +2,21 @@ import {
   AbsoluteFill,
   Sequence,
   interpolate,
-  random,
   spring,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { loadFont } from "@remotion/google-fonts/Inter";
+import { loadFont } from "@remotion/google-fonts/Geist";
 
 const { fontFamily } = loadFont("normal", {
-  weights: ["500", "700", "900"],
+  weights: ["500", "600", "700"],
 });
 
 const BG = "#0a0a0a";
-const INK = "#ededed";
-const MUTED = "#a3a3a3";
-const GREEN = "#29DE8D";
-const PANEL = "#161616";
-const RULE = "#2a2a2a";
+const INK = "#f5f5f5";
+const MUTED = "#8a8a8a";
+const PANEL = "#141414";
+const RULE = "#262626";
 
 const Mark = ({ size }: { size: number }) => (
   <svg width={size} height={size} viewBox="0 0 512 512">
@@ -27,67 +25,40 @@ const Mark = ({ size }: { size: number }) => (
       fill="#171E2C"
     />
     <circle cx="256" cy="276" r="148" fill="none" stroke="#FFFFFF" strokeWidth="24" />
-    <path d="M256 276 L336 29 L472 131 Z" fill={GREEN} />
+    <path d="M256 276 L336 29 L472 131 Z" fill="#29DE8D" />
     <circle cx="380" cy="148" r="17" fill="none" stroke="#171E2C" strokeWidth="9" />
-    <circle cx="256" cy="276" r="36" fill={GREEN} />
+    <circle cx="256" cy="276" r="36" fill="#29DE8D" />
   </svg>
 );
 
-// Impact shake right after a slam lands, then settles.
-const useShake = (hitFrame: number, strength = 14) => {
-  const frame = useCurrentFrame();
-  const t = frame - hitFrame;
-  if (t < 0 || t > 10) return { x: 0, y: 0 };
-  const decay = 1 - t / 10;
-  return {
-    x: (random(`sx-${t}`) - 0.5) * 2 * strength * decay,
-    y: (random(`sy-${t}`) - 0.5) * 2 * strength * decay,
-  };
-};
-
-// Constant slow punch-in so no frame is ever static.
-const useDrift = (durationInFrames: number, amount = 0.06) => {
-  const frame = useCurrentFrame();
-  return 1 + (frame / durationInFrames) * amount;
-};
-
-// Two-frame flash at scene start: classic hype-edit transition.
-const Flash = () => {
-  const frame = useCurrentFrame();
-  const opacity = interpolate(frame, [0, 3], [0.9, 0], {
-    extrapolateRight: "clamp",
-  });
-  return <AbsoluteFill style={{ background: GREEN, opacity }} />;
-};
-
-const Slam = ({
+// Restrained rise-and-settle entrance. No rotation, no overshoot chaos.
+const Rise = ({
   children,
   delay = 0,
-  size = 120,
+  size = 96,
   color = INK,
-  shake = true,
+  weight = 700,
 }: {
   children: React.ReactNode;
   delay?: number;
   size?: number;
   color?: string;
-  shake?: boolean;
+  weight?: number;
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const s = spring({ frame: frame - delay, fps, config: { damping: 11, stiffness: 240 } });
-  const kick = useShake(delay + 5, shake ? 12 : 0);
+  const s = spring({ frame: frame - delay, fps, config: { damping: 200 } });
   return (
     <div
       style={{
         fontFamily,
-        fontWeight: 900,
+        fontWeight: weight,
         fontSize: size,
         color,
-        letterSpacing: "-0.04em",
-        lineHeight: 1.04,
+        letterSpacing: "-0.03em",
+        lineHeight: 1.08,
         textAlign: "center",
-        transform: `translate(${kick.x}px, ${kick.y}px) scale(${interpolate(s, [0, 1], [2.6, 1])}) rotate(${interpolate(s, [0, 1], [-5, 0])}deg)`,
+        transform: `translateY(${interpolate(s, [0, 1], [46, 0])}px)`,
         opacity: s,
       }}
     >
@@ -96,7 +67,13 @@ const Slam = ({
   );
 };
 
-// Reel-safe stage: keeps content clear of the caption/UI zones.
+// Slow cinematic push-in, never static, never violent.
+const useDrift = (durationInFrames: number, amount = 0.035) => {
+  const frame = useCurrentFrame();
+  return 1 + (frame / durationInFrames) * amount;
+};
+
+// Reel-safe stage: clear of caption and UI zones.
 const Stage = ({
   children,
   drift = 1,
@@ -110,8 +87,8 @@ const Stage = ({
       alignItems: "center",
       paddingTop: 200,
       paddingBottom: 360,
-      paddingLeft: 70,
-      paddingRight: 70,
+      paddingLeft: 76,
+      paddingRight: 76,
       flexDirection: "column",
       gap: 36,
       transform: `scale(${drift})`,
@@ -123,28 +100,39 @@ const Stage = ({
 
 const RapidWords = () => {
   const frame = useCurrentFrame();
-  const words = ["they take ur voice.", "ur location.", "ur DMs.", "ur face."];
+  const words = ["your voice.", "your location.", "your messages.", "your face."];
   const beat = 27;
   const index = Math.min(Math.floor(frame / beat), words.length - 1);
   const local = frame - index * beat;
   const { fps } = useVideoConfig();
-  const s = spring({ frame: local, fps, config: { damping: 10, stiffness: 300 } });
-  const kick = useShake(index * beat + 4, 16);
+  const s = spring({ frame: local, fps, config: { damping: 200 } });
   return (
     <Stage drift={useDrift(108)}>
       <div
         style={{
           fontFamily,
-          fontWeight: 900,
-          fontSize: index === 0 ? 110 : 150,
-          color: index % 2 === 0 ? INK : GREEN,
-          letterSpacing: "-0.04em",
+          fontWeight: 700,
+          fontSize: 124,
+          color: INK,
+          letterSpacing: "-0.03em",
           textAlign: "center",
-          transform: `translate(${kick.x}px, ${kick.y}px) scale(${interpolate(s, [0, 1], [3.2, 1])})`,
+          transform: `translateY(${interpolate(s, [0, 1], [40, 0])}px)`,
           opacity: s,
         }}
       >
         {words[index]}
+      </div>
+      <div
+        style={{
+          fontFamily,
+          fontWeight: 500,
+          fontSize: 34,
+          color: MUTED,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+        }}
+      >
+        {index + 1} / {words.length}
       </div>
     </Stage>
   );
@@ -156,54 +144,62 @@ const QUOTE =
 const Receipt = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const cardIn = spring({ frame, fps, config: { damping: 14 } });
+  const cardIn = spring({ frame, fps, config: { damping: 200 } });
   const chars = Math.floor(
     interpolate(frame, [10, 105], [0, QUOTE.length], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
     }),
   );
-  const captionIn = spring({ frame: frame - 112, fps, config: { damping: 14 } });
-  const stampIn = spring({ frame: frame - 130, fps, config: { damping: 9, stiffness: 300 } });
-  const kick = useShake(134, 18);
+  const captionIn = spring({ frame: frame - 112, fps, config: { damping: 200 } });
+  const stampIn = spring({ frame: frame - 128, fps, config: { damping: 16 } });
   return (
-    <Stage drift={useDrift(180, 0.04)}>
+    <Stage drift={useDrift(175, 0.03)}>
       <div
         style={{
           position: "relative",
           width: 920,
           background: "#111111",
-          border: `2px solid ${RULE}`,
-          borderRadius: 28,
+          border: `1px solid ${RULE}`,
+          borderRadius: 24,
           padding: 56,
-          transform: `translate(${kick.x}px, ${kick.y + interpolate(cardIn, [0, 1], [500, 0])}px)`,
+          transform: `translateY(${interpolate(cardIn, [0, 1], [120, 0])}px)`,
           opacity: cardIn,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
           <div
             style={{
-              width: 88,
-              height: 88,
-              borderRadius: 20,
+              width: 84,
+              height: 84,
+              borderRadius: 18,
               background: "#ffffff",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontFamily,
-              fontWeight: 900,
-              fontSize: 52,
+              fontWeight: 700,
+              fontSize: 48,
               color: "#4285F4",
             }}
           >
             G
           </div>
           <div>
-            <div style={{ fontFamily, fontWeight: 700, fontSize: 44, color: INK }}>
+            <div style={{ fontFamily, fontWeight: 700, fontSize: 42, color: INK }}>
               Google
             </div>
-            <div style={{ fontFamily, fontWeight: 700, fontSize: 30, color: GREEN }}>
-              voice recordings
+            <div
+              style={{
+                fontFamily,
+                fontWeight: 600,
+                fontSize: 26,
+                color: MUTED,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+              }}
+            >
+              Voice recordings
             </div>
           </div>
         </div>
@@ -212,13 +208,12 @@ const Receipt = () => {
             marginTop: 40,
             fontFamily,
             fontWeight: 500,
-            fontSize: 40,
-            fontStyle: "italic",
-            lineHeight: 1.4,
+            fontSize: 39,
+            lineHeight: 1.45,
             color: INK,
-            borderLeft: `4px solid ${GREEN}`,
-            paddingLeft: 28,
-            minHeight: 340,
+            borderLeft: `2px solid ${INK}`,
+            paddingLeft: 30,
+            minHeight: 350,
           }}
         >
           {QUOTE.slice(0, chars)}
@@ -227,32 +222,32 @@ const Receipt = () => {
           style={{
             marginTop: 26,
             fontFamily,
-            fontWeight: 700,
-            fontSize: 29,
+            fontWeight: 500,
+            fontSize: 27,
             color: MUTED,
             opacity: captionIn,
           }}
         >
-          — google&apos;s ACTUAL privacy policy. word for word.
+          Google&apos;s actual privacy policy. Word for word.
         </div>
         <div
           style={{
             position: "absolute",
-            top: -46,
-            right: -30,
+            top: -30,
+            right: 40,
             fontFamily,
-            fontWeight: 900,
-            fontSize: 54,
-            color: GREEN,
-            border: `6px solid ${GREEN}`,
-            borderRadius: 16,
-            padding: "10px 26px",
-            background: BG,
-            transform: `rotate(-8deg) scale(${stampIn})`,
-            letterSpacing: "0.02em",
+            fontWeight: 600,
+            fontSize: 28,
+            color: BG,
+            background: INK,
+            borderRadius: 10,
+            padding: "12px 26px",
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            transform: `scale(${stampIn})`,
           }}
         >
-          CAUGHT IN 4K
+          Caught in 4K
         </div>
       </div>
     </Stage>
@@ -260,61 +255,65 @@ const Receipt = () => {
 };
 
 const CHIPS = [
-  { company: "Stripe", takes: "ur biometrics" },
-  { company: "Amazon", takes: "kids' data" },
-  { company: "Meta", takes: "a whole profile of u" },
-  { company: "Spotify", takes: "ur location" },
-  { company: "Netflix", takes: "ur messages" },
+  { company: "Stripe", takes: "your biometrics" },
+  { company: "Amazon", takes: "children's data" },
+  { company: "Meta", takes: "a profile of you" },
+  { company: "Spotify", takes: "your location" },
+  { company: "Netflix", takes: "your messages" },
 ];
 
 const ChipStorm = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const verdict = spring({ frame: frame - 85, fps, config: { damping: 9, stiffness: 280 } });
   return (
-    <Stage drift={useDrift(120, 0.05)}>
+    <Stage drift={useDrift(120, 0.03)}>
       <div
         style={{
           fontFamily,
-          fontWeight: 900,
-          fontSize: 82,
+          fontWeight: 700,
+          fontSize: 76,
           color: INK,
-          letterSpacing: "-0.04em",
+          letterSpacing: "-0.03em",
           textAlign: "center",
-          opacity: spring({ frame, fps, config: { damping: 14 } }),
+          opacity: spring({ frame, fps, config: { damping: 200 } }),
         }}
       >
-        and it&apos;s not just google
+        And it&apos;s not just Google.
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 24, marginTop: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 22,
+          marginTop: 18,
+          width: 880,
+        }}
+      >
         {CHIPS.map((chip, index) => {
           const s = spring({
-            frame: frame - 10 - index * 11,
+            frame: frame - 12 - index * 11,
             fps,
-            config: { damping: 12, stiffness: 240 },
+            config: { damping: 200 },
           });
           return (
             <div
               key={chip.company}
               style={{
                 display: "flex",
-                alignItems: "center",
-                gap: 20,
+                alignItems: "baseline",
+                justifyContent: "space-between",
                 background: PANEL,
-                border: `2px solid ${RULE}`,
-                borderRadius: 18,
-                padding: "24px 36px",
-                transform: `translateX(${interpolate(s, [0, 1], [index % 2 === 0 ? -1000 : 1000, 0])}px)`,
+                border: `1px solid ${RULE}`,
+                borderRadius: 16,
+                padding: "26px 38px",
+                transform: `translateY(${interpolate(s, [0, 1], [60, 0])}px)`,
                 opacity: s,
               }}
             >
-              <span style={{ fontFamily, fontWeight: 900, fontSize: 42, color: INK }}>
+              <span style={{ fontFamily, fontWeight: 700, fontSize: 40, color: INK }}>
                 {chip.company}
               </span>
-              <span style={{ fontFamily, fontWeight: 700, fontSize: 34, color: MUTED }}>
-                takes
-              </span>
-              <span style={{ fontFamily, fontWeight: 900, fontSize: 42, color: GREEN }}>
+              <span style={{ fontFamily, fontWeight: 500, fontSize: 36, color: MUTED }}>
                 {chip.takes}
               </span>
             </div>
@@ -324,72 +323,49 @@ const ChipStorm = () => {
       <div
         style={{
           fontFamily,
-          fontWeight: 900,
-          fontSize: 96,
-          color: GREEN,
-          letterSpacing: "-0.03em",
-          transform: `rotate(-3deg) scale(${verdict})`,
+          fontWeight: 500,
+          fontSize: 30,
+          color: MUTED,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          opacity: spring({ frame: frame - 80, fps, config: { damping: 200 } }),
         }}
       >
-        diabolical.
+        All from their own policies
       </div>
     </Stage>
   );
 };
 
 const PITCH = [
-  "every claim = the exact quote",
-  "alerts the moment policies change",
-  "thinking they'll tell u themselves? delulu.",
+  "Every claim carries the exact quote.",
+  "Alerts the moment a policy changes.",
+  "Ask anything. Answers cite the receipts.",
 ];
 
 const Pitch = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   return (
-    <Stage drift={useDrift(84, 0.05)}>
-      <div
-        style={{
-          fontFamily,
-          fontWeight: 900,
-          fontSize: 92,
-          color: GREEN,
-          letterSpacing: "-0.04em",
-          textAlign: "center",
-          opacity: spring({ frame, fps }),
-        }}
-      >
-        PrivacyRadar
-      </div>
-      <div
-        style={{
-          fontFamily,
-          fontWeight: 700,
-          fontSize: 48,
-          color: INK,
-          textAlign: "center",
-          opacity: spring({ frame: frame - 8, fps }),
-        }}
-      >
-        reads the fine print. standing on business.
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 26, marginTop: 14 }}>
+    <Stage drift={useDrift(84, 0.03)}>
+      <Rise size={86}>PrivacyRadar reads the fine print.</Rise>
+      <div style={{ display: "flex", flexDirection: "column", gap: 28, marginTop: 16 }}>
         {PITCH.map((line, index) => {
           const s = spring({
-            frame: frame - 16 - index * 13,
+            frame: frame - 14 - index * 13,
             fps,
-            config: { damping: 13 },
+            config: { damping: 200 },
           });
           return (
             <div
               key={line}
               style={{
                 fontFamily,
-                fontWeight: 700,
+                fontWeight: 500,
                 fontSize: 44,
-                color: index === PITCH.length - 1 ? GREEN : MUTED,
+                color: MUTED,
                 textAlign: "center",
-                transform: `translateY(${interpolate(s, [0, 1], [70, 0])}px)`,
+                transform: `translateY(${interpolate(s, [0, 1], [40, 0])}px)`,
                 opacity: s,
               }}
             >
@@ -405,19 +381,19 @@ const Pitch = () => {
 const Outro = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const pop = spring({ frame, fps, config: { damping: 10, stiffness: 170 } });
-  const ping = (frame % 40) / 40;
+  const pop = spring({ frame, fps, config: { damping: 100 } });
+  const ping = (frame % 45) / 45;
   return (
     <Stage>
-      <div style={{ position: "relative", width: 400, height: 400 }}>
+      <div style={{ position: "relative", width: 380, height: 380 }}>
         <div
           style={{
             position: "absolute",
             inset: 0,
             borderRadius: "50%",
-            border: `6px solid ${GREEN}`,
-            transform: `scale(${1 + ping})`,
-            opacity: 1 - ping,
+            border: `3px solid ${INK}`,
+            transform: `scale(${1 + ping * 0.8})`,
+            opacity: (1 - ping) * 0.5,
           }}
         />
         <div
@@ -430,34 +406,35 @@ const Outro = () => {
             transform: `scale(${pop})`,
           }}
         >
-          <Mark size={340} />
+          <Mark size={320} />
         </div>
       </div>
-      <Slam delay={6} size={104} shake={false}>
-        <span style={{ color: INK }}>Privacy</span>
-        <span style={{ color: GREEN }}>Radar</span>
-      </Slam>
+      <Rise delay={6} size={92}>
+        PrivacyRadar
+      </Rise>
       <div
         style={{
           fontFamily,
-          fontWeight: 700,
-          fontSize: 44,
+          fontWeight: 500,
+          fontSize: 42,
           color: MUTED,
-          opacity: spring({ frame: frame - 16, fps }),
+          opacity: spring({ frame: frame - 16, fps, config: { damping: 200 } }),
         }}
       >
-        see what they take from you
+        See what they take from you.
       </div>
       <div
         style={{
           fontFamily,
-          fontWeight: 900,
-          fontSize: 52,
+          fontWeight: 600,
+          fontSize: 34,
           color: INK,
-          opacity: spring({ frame: frame - 28, fps }),
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          opacity: spring({ frame: frame - 28, fps, config: { damping: 200 } }),
         }}
       >
-        link in bio.
+        Link in bio
       </div>
     </Stage>
   );
@@ -465,20 +442,20 @@ const Outro = () => {
 
 const Hook = () => (
   <Stage drift={useDrift(60)}>
-    <Slam size={132}>
-      ur apps are
+    <Rise size={116}>
+      Your apps know
       <br />
-      lowkey ur <span style={{ color: GREEN }}>opps</span>
-    </Slam>
+      too much about you.
+    </Rise>
   </Stage>
 );
 
 const Tease = () => (
   <Stage drift={useDrift(60)}>
-    <Slam size={112}>sounds like cap?</Slam>
-    <Slam delay={20} size={112}>
-      we caught them <span style={{ color: GREEN }}>in 4K</span>
-    </Slam>
+    <Rise size={100}>Sounds exaggerated?</Rise>
+    <Rise delay={20} size={100}>
+      We have the receipts.
+    </Rise>
   </Stage>
 );
 
@@ -492,37 +469,31 @@ export const LaunchVideo = () => {
 
       {/* S2: rapid-fire */}
       <Sequence from={60} durationInFrames={108}>
-        <Flash />
         <RapidWords />
       </Sequence>
 
-      {/* S3: caught in 4k tease */}
+      {/* S3: receipts tease */}
       <Sequence from={168} durationInFrames={60}>
-        <Flash />
         <Tease />
       </Sequence>
 
       {/* S4: the receipt */}
       <Sequence from={228} durationInFrames={175}>
-        <Flash />
         <Receipt />
       </Sequence>
 
-      {/* S5: chip storm + verdict */}
+      {/* S5: the pattern */}
       <Sequence from={403} durationInFrames={120}>
-        <Flash />
         <ChipStorm />
       </Sequence>
 
       {/* S6: pitch */}
       <Sequence from={523} durationInFrames={84}>
-        <Flash />
         <Pitch />
       </Sequence>
 
       {/* S7: outro */}
       <Sequence from={607} durationInFrames={83}>
-        <Flash />
         <Outro />
       </Sequence>
     </AbsoluteFill>
