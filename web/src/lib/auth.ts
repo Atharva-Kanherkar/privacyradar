@@ -36,10 +36,32 @@ function fixtureDeliveryEnabled(): boolean {
   return process.env.AUTH_DELIVERY === "fixture";
 }
 
-const pool = new Pool({
-  connectionString: connectionString || "postgresql://127.0.0.1:1/invalid",
-  max: 4,
-});
+// Managed Postgres hosts (Railway included) terminate TLS with self-signed
+// chains. Modern `pg` treats sslmode=require as verify-full and rejects
+// them, killing every auth query in production. Match postgres.js instead:
+// encrypt, but skip CA verification.
+function buildPool(raw: string): Pool {
+  if (!raw) {
+    return new Pool({ connectionString: "postgresql://127.0.0.1:1/invalid", max: 4 });
+  }
+  try {
+    const url = new URL(raw);
+    const mode = url.searchParams.get("sslmode");
+    if (mode && mode !== "disable") {
+      url.searchParams.delete("sslmode");
+      return new Pool({
+        connectionString: url.toString(),
+        max: 4,
+        ssl: { rejectUnauthorized: false },
+      });
+    }
+  } catch {
+    // non-URL connection strings fall through to the plain pool
+  }
+  return new Pool({ connectionString: raw, max: 4 });
+}
+
+const pool = buildPool(connectionString);
 
 const sql = connectionString
   ? postgres(connectionString, { max: 2, idle_timeout: 20 })
