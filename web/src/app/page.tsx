@@ -60,13 +60,15 @@ export default async function Home() {
     : null;
 
   return (
-    <main id="main" className="mx-auto max-w-6xl overflow-x-hidden px-6 py-14">
-      <section className="grid items-center gap-10 lg:grid-cols-[1.15fr_1fr]">
+    <main id="main" className="relative mx-auto max-w-6xl overflow-x-clip px-6 py-20">
+      <div aria-hidden="true" className="aurora" />
+      <section className="grid items-center gap-12 lg:grid-cols-[1.2fr_1fr]">
         <div>
-          <h1 className="text-[clamp(2.25rem,1.4rem+2.8vw,3.4rem)] font-semibold leading-[1.08] tracking-tight">
-            What do the services you use disclose about your data?
+          <h1 className="max-w-2xl text-[clamp(2.5rem,1.6rem+3.4vw,4.25rem)] font-semibold leading-[1.06] tracking-[-0.03em]">
+            What do the services you use{" "}
+            <span className="lede-rest">disclose about your data?</span>
           </h1>
-          <p className="mt-4 max-w-xl text-lg text-[var(--muted)]">
+          <p className="mt-6 max-w-xl text-xl leading-relaxed text-[var(--muted)]">
             Your voice. Your location. Your messages. See exactly what each
             company says it takes, straight from its own privacy policy.
           </p>
@@ -90,18 +92,6 @@ export default async function Home() {
                 </Link>
               ))}
             </div>
-          ) : null}
-          {stats ? (
-            <p className="tabular mt-6 text-sm text-[var(--muted)]">
-              <strong className="font-semibold text-[var(--ink)]">
-                {stats.companies} companies
-              </strong>{" "}
-              watched ·{" "}
-              <strong className="font-semibold text-[var(--ink)]">
-                {stats.claims} disclosures
-              </strong>{" "}
-              published, every one backed by a quote
-            </p>
           ) : null}
         </div>
 
@@ -146,14 +136,57 @@ export default async function Home() {
         ) : null}
       </section>
 
-      <section className="mt-16">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-2xl font-semibold tracking-tight">
-            Companies we watch
+      {stats ? (
+        <section
+          aria-label="Coverage"
+          className="tabular mt-20 grid grid-cols-2 gap-x-8 gap-y-10 border-y border-[var(--rule)] py-12 lg:grid-cols-4"
+        >
+          <div>
+            <p className="text-4xl font-light tracking-tight text-[var(--accent)]">
+              {stats.companies}
+            </p>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              companies under continuous watch
+            </p>
+          </div>
+          <div>
+            <p className="text-4xl font-light tracking-tight text-[var(--accent)]">
+              {stats.claims}
+            </p>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              disclosures published from captured policies
+            </p>
+          </div>
+          <div>
+            <p className="text-4xl font-light tracking-tight text-[var(--accent)]">
+              4<span className="text-2xl">×</span>
+            </p>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              policy checks per day, every company
+            </p>
+          </div>
+          <div>
+            <p className="text-4xl font-light tracking-tight text-[var(--accent)]">
+              100%
+            </p>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              of claims carry the exact policy quote
+            </p>
+          </div>
+        </section>
+      ) : null}
+
+      <section className="mt-20">
+        <div className="flex items-end justify-between gap-6">
+          <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+            Companies we watch.{" "}
+            <span className="lede-muted font-medium">
+              Each card shows what the policy discloses it collects.
+            </span>
           </h2>
           <Link
             href="/companies"
-            className="text-sm font-medium text-[var(--accent)] hover:underline"
+            className="shrink-0 text-sm font-medium text-[var(--accent)] hover:underline"
           >
             See all
           </Link>
@@ -175,9 +208,12 @@ export default async function Home() {
         )}
       </section>
 
-      <section className="mt-16">
-        <h2 className="text-2xl font-semibold tracking-tight">
-          Important recent changes
+      <section className="mt-20">
+        <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+          Important recent changes.{" "}
+          <span className="lede-muted font-medium">
+            When a policy materially shifts, it lands here with receipts.
+          </span>
         </h2>
         {!events.ok ? (
           <StatePanel title="Change feed unavailable">
@@ -209,7 +245,7 @@ export default async function Home() {
 
       <section
         aria-label="How it works"
-        className="mt-16 grid gap-8 border-t border-[var(--rule)] pt-8 sm:grid-cols-3"
+        className="mt-20 grid gap-8 border-t border-[var(--rule)] pt-10 sm:grid-cols-3"
       >
         {STEPS.map((step) => (
           <div key={step.title}>

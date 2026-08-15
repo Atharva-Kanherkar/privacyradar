@@ -14,7 +14,7 @@ export function SearchForm({
       <label htmlFor="company-search" className="sr-only">
         {label}
       </label>
-      <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-[var(--rule)] bg-[var(--surface)] p-1.5 focus-within:border-[var(--accent)]">
+      <div className="flex min-w-0 items-center gap-2 rounded-full border border-[var(--rule)] bg-[var(--surface)] p-1.5 focus-within:border-[var(--accent)]">
         <Search size={18} aria-hidden="true" className="ml-2 shrink-0 text-[var(--muted)]" />
         <input
           id="company-search"
@@ -28,7 +28,7 @@ export function SearchForm({
         />
         <button
           type="submit"
-          className="min-h-11 shrink-0 rounded-xl bg-[var(--ink)] px-5 text-sm font-medium text-[var(--ink-contrast)]"
+          className="min-h-11 shrink-0 rounded-full bg-[var(--accent)] px-6 text-sm font-medium text-[var(--accent-contrast)] transition-opacity hover:opacity-90"
         >
           Search
         </button>

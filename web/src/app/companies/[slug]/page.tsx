@@ -143,7 +143,7 @@ export default async function CompanyPage({
           />
           <Link
             href={`/compare?companies=${company.slug}`}
-            className="inline-flex min-h-11 items-center rounded-lg border border-[var(--rule)] bg-[var(--surface)] px-4 text-sm font-medium hover:border-[var(--accent)]"
+            className="inline-flex min-h-11 items-center rounded-full border border-[var(--rule)] bg-[var(--surface)] px-5 text-sm font-medium hover:border-[var(--accent)]"
           >
             Compare
           </Link>
@@ -151,13 +151,12 @@ export default async function CompanyPage({
       </div>
 
       <section className="mt-12">
-        <h2 className="text-2xl font-semibold tracking-tight">
-          What {company.name} takes from you
+        <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+          What {company.name} takes from you.{" "}
+          <span className="lede-muted font-medium">
+            Straight from the captured policy. Tap any row for the exact quote.
+          </span>
         </h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Everything below comes from the captured policy. Tap any row to see
-          the exact quote.
-        </p>
         {collected.length === 0 ? (
           <p className="mt-4 max-w-xl text-[var(--muted)]">
             {company.current_snapshot_id
@@ -175,8 +174,8 @@ export default async function CompanyPage({
 
       {notCollected.length > 0 ? (
         <section className="mt-12">
-          <h2 className="text-2xl font-semibold tracking-tight">
-            What the policy denies or leaves unclear
+          <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+            What the policy denies or leaves unclear.
           </h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {notCollected.map((claim) => (
@@ -188,8 +187,8 @@ export default async function CompanyPage({
 
       {purposes.length > 0 ? (
         <section className="mt-12">
-          <h2 className="text-2xl font-semibold tracking-tight">
-            Why they use your data
+          <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+            Why they use your data.
           </h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {purposes.map((claim) => (
@@ -201,8 +200,8 @@ export default async function CompanyPage({
 
       {practices.length > 0 ? (
         <section className="mt-12">
-          <h2 className="text-2xl font-semibold tracking-tight">
-            Sharing, retention &amp; your controls
+          <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+            Sharing, retention &amp; your controls.
           </h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {practices.map((claim) => (
@@ -213,7 +212,9 @@ export default async function CompanyPage({
       ) : null}
 
       <section className="mt-12">
-        <h2 className="text-2xl font-semibold tracking-tight">What changed</h2>
+        <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+          What changed.
+        </h2>
         {events.length === 0 ? (
           <p className="mt-3 text-[var(--muted)]">No published changes yet.</p>
         ) : (

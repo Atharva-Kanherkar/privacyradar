@@ -13,7 +13,7 @@ export function WatchButton({
     return (
       <Link
         href={`/login?next=${encodeURIComponent(`/companies/${slug}/watch`)}`}
-        className="inline-flex min-h-11 items-center border border-[var(--ink)] px-4 font-sans text-sm"
+        className="inline-flex min-h-11 items-center rounded-full bg-[var(--accent)] px-5 text-sm font-medium text-[var(--accent-contrast)] transition-opacity hover:opacity-90"
       >
         Watch
       </Link>
@@ -24,7 +24,7 @@ export function WatchButton({
       <form action={`/api/watches/${slug}/unfollow`} method="post">
         <button
           type="submit"
-          className="inline-flex min-h-11 items-center border border-[var(--rule)] px-4 font-sans text-sm"
+          className="inline-flex min-h-11 items-center rounded-full border border-[var(--rule)] bg-[var(--surface)] px-5 text-sm font-medium text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--ink)]"
         >
           Watching
         </button>
@@ -37,7 +37,7 @@ export function WatchButton({
       <input type="hidden" name="source" value="company_page" />
       <button
         type="submit"
-        className="inline-flex min-h-11 items-center border border-[var(--ink)] px-4 font-sans text-sm"
+        className="inline-flex min-h-11 items-center rounded-full bg-[var(--accent)] px-5 text-sm font-medium text-[var(--accent-contrast)] transition-opacity hover:opacity-90"
       >
         Watch
       </button>

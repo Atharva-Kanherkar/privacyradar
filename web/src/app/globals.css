@@ -119,6 +119,48 @@ h3 {
   letter-spacing: -0.025em;
 }
 
+/* Two-tone statement headline: the sentence starts in ink and continues in
+   a quieter tone. Emphasis by color plane, one size, one weight. */
+.lede-rest {
+  color: var(--accent);
+}
+
+.lede-muted {
+  color: var(--muted);
+}
+
+/* Flowing color field behind the hero. One authored moment, pinned to the
+   brief's aesthetic; dark mode dims it to an ember. */
+.aurora {
+  position: absolute;
+  inset: -12rem -20% auto;
+  height: 34rem;
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(64px) saturate(1.2);
+  opacity: 0.75;
+  background:
+    radial-gradient(46% 64% at 76% 22%, #c7d2fe 0%, transparent 70%),
+    radial-gradient(38% 56% at 94% 58%, #fbcfe8 0%, transparent 72%),
+    radial-gradient(32% 48% at 60% 2%, #fde68a 0%, transparent 70%),
+    radial-gradient(28% 44% at 48% 34%, #a5f3fc 0%, transparent 75%);
+}
+
+:root[data-theme="dark"] .aurora {
+  opacity: 0.16;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .aurora {
+    opacity: 0.16;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .aurora {
+    transition: opacity 600ms ease-out;
+  }
+}
+
 p {
   text-wrap: pretty;
 }
