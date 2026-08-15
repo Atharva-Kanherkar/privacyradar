@@ -57,14 +57,14 @@ export default async function Home() {
     : null;
 
   return (
-    <main id="main" className="relative mx-auto max-w-6xl overflow-x-clip px-6 py-20">
+    <main id="main" className="relative mx-auto max-w-6xl overflow-x-clip px-4 py-12 sm:px-6 sm:py-20">
       <section className="grid items-center gap-12 lg:grid-cols-[1.2fr_1fr]">
         <div>
           <h1 className="max-w-2xl text-[clamp(2.5rem,1.6rem+3.4vw,4.25rem)] font-semibold leading-[1.06] tracking-[-0.03em]">
             What do the services you use{" "}
             <span className="lede-muted">disclose about your data?</span>
           </h1>
-          <p className="mt-6 max-w-xl text-xl leading-relaxed text-muted-foreground">
+          <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
             Your voice. Your location. Your messages. See exactly what each
             company says it takes, straight from its own privacy policy.
           </p>
@@ -135,10 +135,10 @@ export default async function Home() {
       {stats ? (
         <section
           aria-label="Coverage"
-          className="tabular mt-20 grid grid-cols-2 gap-x-8 gap-y-10 border-y border-border py-12 lg:grid-cols-4"
+          className="tabular mt-14 grid grid-cols-2 gap-x-6 gap-y-8 border-y border-border py-8 sm:mt-20 sm:py-12 lg:grid-cols-4"
         >
           <div>
-            <p className="text-4xl font-light tracking-tight text-foreground">
+            <p className="text-3xl font-light tracking-tight text-foreground sm:text-4xl">
               {stats.companies}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -146,7 +146,7 @@ export default async function Home() {
             </p>
           </div>
           <div>
-            <p className="text-4xl font-light tracking-tight text-foreground">
+            <p className="text-3xl font-light tracking-tight text-foreground sm:text-4xl">
               {stats.claims}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -154,7 +154,7 @@ export default async function Home() {
             </p>
           </div>
           <div>
-            <p className="text-4xl font-light tracking-tight text-foreground">
+            <p className="text-3xl font-light tracking-tight text-foreground sm:text-4xl">
               4<span className="text-2xl">×</span>
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -162,7 +162,7 @@ export default async function Home() {
             </p>
           </div>
           <div>
-            <p className="text-4xl font-light tracking-tight text-foreground">
+            <p className="text-3xl font-light tracking-tight text-foreground sm:text-4xl">
               100%
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -172,9 +172,9 @@ export default async function Home() {
         </section>
       ) : null}
 
-      <section className="mt-20">
+      <section className="mt-14 sm:mt-20">
         <div className="flex items-end justify-between gap-6">
-          <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+          <h2 className="max-w-3xl text-2xl font-semibold leading-snug tracking-tight sm:text-[1.75rem]">
             Companies we watch.{" "}
             <span className="lede-muted font-medium">
               Each card shows what the policy discloses it collects.
@@ -192,7 +192,7 @@ export default async function Home() {
             We could not load companies. A missing database is not an empty catalog.
           </StatePanel>
         ) : (
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {companies.data.map((company) => (
               <CompanyCard
                 key={company.id}

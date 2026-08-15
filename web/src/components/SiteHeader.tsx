@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { accountsEnabled } from "@/lib/flags";
 import { AuthNav } from "./AuthNav";
+import { GitHubIcon } from "./GitHubIcon";
+import { MobileNav } from "./MobileNav";
 import { ThemeToggle } from "./ThemeToggle";
 
 const LINKS = [
@@ -10,16 +13,17 @@ const LINKS = [
 ];
 
 export function SiteHeader() {
+  const accounts = accountsEnabled();
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card">
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <div className="mx-auto flex max-w-6xl min-w-0 flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-3">
-        <Link href="/" className="flex items-center gap-2.5">
+      <div className="relative mx-auto flex max-w-6xl min-w-0 items-center justify-between gap-x-6 px-4 py-3 sm:px-6">
+        <Link href="/" className="flex min-w-0 items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.svg" alt="" width={36} height={36} />
-          <span className="text-lg font-semibold tracking-tight">
+          <span className="truncate text-lg font-semibold tracking-tight">
             PrivacyRadar
           </span>
         </Link>
@@ -33,29 +37,25 @@ export function SiteHeader() {
               {link.label}
             </Link>
           ))}
+          <a
+            href="https://github.com/Atharva-Kanherkar/privacyradar"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Source code on GitHub"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <GitHubIcon />
+          </a>
           <ThemeToggle />
-          <AuthNav />
+          {accounts ? (
+            <AuthNav />
+          ) : (
+            <span className="ml-1 inline-flex min-h-10 items-center rounded-md bg-muted px-4 text-sm font-medium text-muted-foreground">
+              Sign in coming soon
+            </span>
+          )}
         </nav>
-        <details className="sm:hidden">
-          <summary className="inline-flex min-h-11 min-w-11 cursor-pointer items-center text-sm font-medium">
-            Menu
-          </summary>
-          <nav aria-label="Primary" className="mt-2 flex flex-col">
-            {LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="inline-flex min-h-11 items-center text-sm font-medium"
-              >
-                {link.label}
-              </Link>
-            ))}
-            <div className="flex items-center gap-1">
-              <ThemeToggle />
-              <AuthNav />
-            </div>
-          </nav>
-        </details>
+        <MobileNav links={LINKS} accounts={accounts} />
       </div>
     </header>
   );

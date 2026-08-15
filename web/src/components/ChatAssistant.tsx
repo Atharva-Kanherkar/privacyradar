@@ -136,7 +136,7 @@ export function ChatAssistant({
       <Button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-40 min-h-12 gap-2 px-5 shadow-lg"
+        className="fixed bottom-5 right-4 z-40 min-h-12 gap-2 px-5 shadow-lg sm:bottom-6 sm:right-6"
       >
         <Sparkles size={16} aria-hidden="true" />
         Ask about this policy

@@ -67,7 +67,7 @@ export default async function CompanyPage({
   const result = await loadCompany(slug);
   if (!result.ok) {
     return (
-      <main id="main" className="mx-auto max-w-6xl px-6 py-12">
+      <main id="main" className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
         <StatePanel title="Company page unavailable">
           We could not load this company. A failed fetch is not an empty policy.
         </StatePanel>
@@ -114,7 +114,7 @@ export default async function CompanyPage({
   const chatOn = assistantEnabled();
 
   return (
-    <main id="main" className="mx-auto max-w-6xl px-6 py-12">
+    <main id="main" className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
       <p className="text-sm text-muted-foreground">
         <Link href="/companies" className="hover:underline">
           Companies
@@ -131,7 +131,7 @@ export default async function CompanyPage({
             className="mt-1"
           />
           <div>
-            <h1 className="text-4xl font-semibold tracking-tight">{company.name}</h1>
+            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{company.name}</h1>
             <p className="mt-2 text-sm text-muted-foreground">
             {company.privacy_url ? (
               <a href={company.privacy_url} className="underline" rel="noreferrer">
@@ -162,8 +162,8 @@ export default async function CompanyPage({
         </div>
       </div>
 
-      <section className="mt-12">
-        <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+      <section className="mt-10 sm:mt-12">
+        <h2 className="max-w-3xl text-2xl font-semibold leading-snug tracking-tight sm:text-[1.75rem]">
           What {company.name} takes from you.{" "}
           <span className="lede-muted font-medium">
             Straight from the captured policy. Tap any row for the exact quote.
@@ -176,7 +176,7 @@ export default async function CompanyPage({
               : "Not yet checked. A missing or failed fetch is not an empty policy."}
           </p>
         ) : (
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {collected.map((claim) => (
               <ClaimCard key={claim.claim_key} claim={claim} />
             ))}
@@ -185,11 +185,11 @@ export default async function CompanyPage({
       </section>
 
       {notCollected.length > 0 ? (
-        <section className="mt-12">
-          <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+        <section className="mt-10 sm:mt-12">
+          <h2 className="max-w-3xl text-2xl font-semibold leading-snug tracking-tight sm:text-[1.75rem]">
             What the policy denies or leaves unclear.
           </h2>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {notCollected.map((claim) => (
               <ClaimCard key={claim.claim_key} claim={claim} />
             ))}
@@ -198,11 +198,11 @@ export default async function CompanyPage({
       ) : null}
 
       {purposes.length > 0 ? (
-        <section className="mt-12">
-          <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+        <section className="mt-10 sm:mt-12">
+          <h2 className="max-w-3xl text-2xl font-semibold leading-snug tracking-tight sm:text-[1.75rem]">
             Why they use your data.
           </h2>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {purposes.map((claim) => (
               <ClaimCard key={claim.claim_key} claim={claim} />
             ))}
@@ -211,11 +211,11 @@ export default async function CompanyPage({
       ) : null}
 
       {practices.length > 0 ? (
-        <section className="mt-12">
-          <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+        <section className="mt-10 sm:mt-12">
+          <h2 className="max-w-3xl text-2xl font-semibold leading-snug tracking-tight sm:text-[1.75rem]">
             Sharing, retention &amp; your controls.
           </h2>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {practices.map((claim) => (
               <ClaimCard key={claim.claim_key} claim={claim} />
             ))}
@@ -223,8 +223,8 @@ export default async function CompanyPage({
         </section>
       ) : null}
 
-      <section className="mt-12">
-        <h2 className="max-w-3xl text-[1.75rem] font-semibold leading-snug tracking-tight">
+      <section className="mt-10 sm:mt-12">
+        <h2 className="max-w-3xl text-2xl font-semibold leading-snug tracking-tight sm:text-[1.75rem]">
           What changed.
         </h2>
         {events.length === 0 ? (

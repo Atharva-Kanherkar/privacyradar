@@ -19,8 +19,8 @@ export default async function CompaniesPage({
   ]);
 
   return (
-    <main id="main" className="mx-auto max-w-6xl px-6 py-12">
-      <h1 className="text-4xl font-semibold tracking-tight">Catalog</h1>
+    <main id="main" className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Catalog</h1>
       <p className="mt-3 max-w-xl text-muted-foreground">
         Hand-picked services. Each card shows what the company&rsquo;s own
         privacy policy discloses it collects about you.{" "}
@@ -40,7 +40,7 @@ export default async function CompaniesPage({
           the home page.
         </p>
       ) : (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {result.data.map((company) => (
             <CompanyCard
               key={company.id}
