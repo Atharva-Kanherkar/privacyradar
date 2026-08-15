@@ -1,15 +1,17 @@
 import {
   AbsoluteFill,
+  Audio,
   Sequence,
   interpolate,
   spring,
+  staticFile,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { loadFont } from "@remotion/google-fonts/Geist";
+import { loadFont } from "@remotion/google-fonts/SpaceGrotesk";
 
 const { fontFamily } = loadFont("normal", {
-  weights: ["500", "600", "700"],
+  weights: ["500", "700"],
 });
 
 const BG = "#0a0a0a";
@@ -85,12 +87,9 @@ const Stage = ({
     style={{
       justifyContent: "center",
       alignItems: "center",
-      paddingTop: 200,
-      paddingBottom: 360,
-      paddingLeft: 76,
-      paddingRight: 76,
+      padding: 80,
       flexDirection: "column",
-      gap: 36,
+      gap: 30,
       transform: `scale(${drift})`,
     }}
   >
@@ -122,18 +121,6 @@ const RapidWords = () => {
       >
         {words[index]}
       </div>
-      <div
-        style={{
-          fontFamily,
-          fontWeight: 500,
-          fontSize: 34,
-          color: MUTED,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-        }}
-      >
-        {index + 1} / {words.length}
-      </div>
     </Stage>
   );
 };
@@ -158,7 +145,7 @@ const Receipt = () => {
       <div
         style={{
           position: "relative",
-          width: 920,
+          width: 1100,
           background: "#111111",
           border: `1px solid ${RULE}`,
           borderRadius: 24,
@@ -192,7 +179,7 @@ const Receipt = () => {
             <div
               style={{
                 fontFamily,
-                fontWeight: 600,
+                fontWeight: 700,
                 fontSize: 26,
                 color: MUTED,
                 letterSpacing: "0.1em",
@@ -208,12 +195,12 @@ const Receipt = () => {
             marginTop: 40,
             fontFamily,
             fontWeight: 500,
-            fontSize: 39,
+            fontSize: 36,
             lineHeight: 1.45,
             color: INK,
             borderLeft: `2px solid ${INK}`,
             paddingLeft: 30,
-            minHeight: 350,
+            minHeight: 300,
           }}
         >
           {QUOTE.slice(0, chars)}
@@ -236,7 +223,7 @@ const Receipt = () => {
             top: -30,
             right: 40,
             fontFamily,
-            fontWeight: 600,
+            fontWeight: 700,
             fontSize: 28,
             color: BG,
             background: INK,
@@ -286,7 +273,7 @@ const ChipStorm = () => {
           flexDirection: "column",
           gap: 22,
           marginTop: 18,
-          width: 880,
+          width: 1000,
         }}
       >
         {CHIPS.map((chip, index) => {
@@ -426,7 +413,7 @@ const Outro = () => {
       <div
         style={{
           fontFamily,
-          fontWeight: 600,
+          fontWeight: 700,
           fontSize: 34,
           color: INK,
           letterSpacing: "0.12em",
@@ -434,7 +421,7 @@ const Outro = () => {
           opacity: spring({ frame: frame - 28, fps, config: { damping: 200 } }),
         }}
       >
-        Link in bio
+        privacyradar.app
       </div>
     </Stage>
   );
@@ -462,6 +449,7 @@ const Tease = () => (
 export const LaunchVideo = () => {
   return (
     <AbsoluteFill style={{ background: BG }}>
+      <Audio src={staticFile("score.wav")} />
       {/* S1: hook */}
       <Sequence durationInFrames={60}>
         <Hook />
