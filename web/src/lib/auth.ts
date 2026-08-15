@@ -79,6 +79,8 @@ export const auth = betterAuth({
   database: pool,
   trustedOrigins: [
     appOrigin,
+    "https://privacyradar.app",
+    "https://www.privacyradar.app",
     "http://127.0.0.1:3000",
     "http://localhost:3000",
   ],
