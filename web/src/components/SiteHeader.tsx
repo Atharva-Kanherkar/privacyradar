@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { accountsEnabled } from "@/lib/flags";
 import { AuthNav } from "./AuthNav";
 import { GitHubIcon } from "./GitHubIcon";
 import { MobileNav } from "./MobileNav";
@@ -12,6 +13,7 @@ const LINKS = [
 ];
 
 export function SiteHeader() {
+  const accounts = accountsEnabled();
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card">
       <a className="skip-link" href="#main">
@@ -45,9 +47,15 @@ export function SiteHeader() {
             <GitHubIcon />
           </a>
           <ThemeToggle />
-          <AuthNav />
+          {accounts ? (
+            <AuthNav />
+          ) : (
+            <span className="ml-1 inline-flex min-h-10 items-center rounded-md bg-muted px-4 text-sm font-medium text-muted-foreground">
+              Sign in coming soon
+            </span>
+          )}
         </nav>
-        <MobileNav links={LINKS} />
+        <MobileNav links={LINKS} accounts={accounts} />
       </div>
     </header>
   );

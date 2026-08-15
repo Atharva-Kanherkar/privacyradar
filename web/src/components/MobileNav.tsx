@@ -9,8 +9,10 @@ import { ThemeToggle } from "./ThemeToggle";
 
 export function MobileNav({
   links,
+  accounts,
 }: {
   links: { href: string; label: string }[];
+  accounts: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -60,7 +62,13 @@ export function MobileNav({
             </a>
             <ThemeToggle />
             <div className="ml-auto" onClick={() => setOpen(false)}>
-              <AuthNav />
+              {accounts ? (
+                <AuthNav />
+              ) : (
+                <span className="inline-flex min-h-10 items-center rounded-md bg-muted px-4 text-sm font-medium text-muted-foreground">
+                  Sign in coming soon
+                </span>
+              )}
             </div>
           </div>
         </div>
