@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -66,6 +67,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
         <SiteHeader />
         <div className="flex-1">{children}</div>
+        <Analytics />
         <footer className="border-t border-border bg-card">
           <p className="mx-auto max-w-6xl px-6 py-5 text-xs text-muted-foreground">
             Not legal advice. We report what companies disclose in captured

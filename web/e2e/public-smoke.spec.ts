@@ -123,7 +123,7 @@ test.describe("public smoke", () => {
     await page.setViewportSize({ width: 320, height: 640 });
     expect((await page.goto("/"))?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(page.getByText("Menu")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Open menu" })).toBeVisible();
     const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
     expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 8);

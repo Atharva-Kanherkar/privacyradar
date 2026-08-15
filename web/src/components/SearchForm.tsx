@@ -162,10 +162,10 @@ export function SearchForm({
           aria-activedescendant={
             highlighted >= 0 ? `${listId}-${highlighted}` : undefined
           }
-          placeholder="Try Google, Spotify, or Signal…"
+          placeholder="Search a company…"
           className="min-h-11 min-w-0 flex-1 bg-transparent text-base outline-none"
         />
-        <Button type="submit" className="min-h-11 shrink-0 px-6">
+        <Button type="submit" className="min-h-11 shrink-0 px-4 sm:px-6">
           Search
         </Button>
       </div>
